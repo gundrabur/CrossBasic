@@ -798,6 +798,7 @@ class BasicInterpreter:
             'LEN': lambda s: len(str(s)),
             'CHR': lambda x: chr(int(x)),
             'ASC': lambda s: ord(str(s)[0]) if str(s) else 0,
+            'TIME': lambda: time.time(),
         }
     
     def error(self, message: str):
@@ -1508,6 +1509,7 @@ Graphics Commands:
 Built-in Functions:
     ABS(x), INT(x), SQR(x), SIN(x), COS(x), TAN(x)
     RND([x]), LEN(s), CHR(s), ASC(s)
+    TIME() - Returns current time in seconds (for benchmarking)
 
 Example Program:
     10 GRAPHICS

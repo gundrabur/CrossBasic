@@ -31,6 +31,7 @@ A complete BASIC interpreter written in Python with graphics support that runs o
   - `RND([x])` - Random number
   - `LEN(s)` - String length
   - `CHR(x)`, `ASC(s)` - Character/ASCII conversion
+  - `TIME()` - Current time in seconds (for benchmarking)
 
 ### Graphics Functions
 - **Graphics Mode**: `GRAPHICS [mode]` - Initialize graphics window
@@ -123,6 +124,12 @@ CrossBasic comes with an extensive collection of example programs:
 - **`mandelbrot_explorer.bas`** - Interactive version with different regions
 - **`mandelbrot_lernen.bas`** - Educational version with detailed explanations
 
+### `/examples/benchmarks/` - Performance Testing
+- **`benchmark_test.bas`** - Comprehensive benchmark suite
+- **`mandelbrot_benchmark.bas`** - Mandelbrot fractal performance test
+- **`time_examples.bas`** - Various TIME function demonstrations
+- **`time_test_simple.bas`** - Simple timing example
+
 See `examples/README.md` for detailed documentation.
 
 ## 📝 BASIC Syntax
@@ -172,6 +179,17 @@ GRAPHICS          REM Open graphics window
 COLOR 2           REM Red color
 CIRCLE 400, 300, 100  REM Circle in center
 LINE 0, 0 TO 800, 600  REM Diagonal line
+```
+
+### Benchmarking with TIME()
+```basic
+REM Time a loop operation
+10 START_TIME = TIME()
+20 FOR I = 1 TO 10000
+30   LET X = SQR(I)
+40 NEXT I
+50 END_TIME = TIME()
+60 PRINT "Loop took "; (END_TIME - START_TIME); " seconds"
 ```
 
 ## 🌐 Platform Compatibility
@@ -264,9 +282,9 @@ CrossBasic was developed as a demonstration project for a complete BASIC interpr
 - **Language**: Python 3.6+
 - **Dependencies**: Pygame
 - **Lines of Code**: ~1500
-- **Example Programs**: 11
+- **Example Programs**: 15+
 - **Supported BASIC Commands**: 20+
-- **Built-in Functions**: 10+
+- **Built-in Functions**: 11+
 
 ---
 
