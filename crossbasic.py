@@ -838,18 +838,17 @@ class BasicInterpreter:
             self.graphics.reset()
         
         self.running = True
-        program_keys = [k for k in self.program.keys() if k != '__lines__']
-        self.current_line = min(program_keys) if program_keys else 0
+        numeric_keys = [k for k in self.program.keys() if isinstance(k, int)]
+        self.current_line = min(numeric_keys) if numeric_keys else 0
         self.goto_executed = False  # Flag to track if GOTO was executed
         
         try:
             while self.running and self.current_line in self.program:
                 if self.current_line == '__lines__':
-                    # Skip the special __lines__ entry
-                    next_lines = [line for line in sorted(self.program.keys()) 
-                                 if line > self.current_line and line != '__lines__']
-                    if next_lines:
-                        self.current_line = next_lines[0]
+                    # Skip the special __lines__ entry - this shouldn't happen since current_line should be numeric
+                    numeric_keys = [k for k in self.program.keys() if isinstance(k, int) and k > self.current_line]
+                    if numeric_keys:
+                        self.current_line = min(numeric_keys)
                     else:
                         break
                     continue
@@ -860,10 +859,9 @@ class BasicInterpreter:
                 
                 if self.running and not self.goto_executed:
                     # Only advance to next line if GOTO wasn't executed
-                    next_lines = [line for line in sorted(self.program.keys()) 
-                                 if line > self.current_line and line != '__lines__']
-                    if next_lines:
-                        self.current_line = next_lines[0]
+                    numeric_keys = [k for k in self.program.keys() if isinstance(k, int) and k > self.current_line]
+                    if numeric_keys:
+                        self.current_line = min(numeric_keys)
                     else:
                         break
         
@@ -1169,8 +1167,8 @@ class BasicInterpreter:
         while_count = 1
         current = self.current_line
         
-        for line_num in sorted(self.program.keys()):
-            if line_num <= current or line_num == '__lines__':
+        for line_num in sorted([k for k in self.program.keys() if isinstance(k, int)]):
+            if line_num <= current:
                 continue
             
             stmt, _, _ = self.program[line_num]  # Extract statement, ignore had_line_number and position
@@ -1211,10 +1209,9 @@ class BasicInterpreter:
         
         return_line = self.call_stack.pop()
         # Zur nächsten Zeile nach GOSUB gehen
-        next_lines = [line for line in sorted(self.program.keys()) 
-                     if line > return_line]
-        if next_lines:
-            self.current_line = next_lines[0]
+        numeric_keys = [k for k in self.program.keys() if isinstance(k, int) and k > return_line]
+        if numeric_keys:
+            self.current_line = min(numeric_keys)
         else:
             self.running = False
     

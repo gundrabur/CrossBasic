@@ -10,8 +10,8 @@ REM Initialization
 50 COLOR 1
 
 REM Parameters for good quality
-60 LET WIDTH = 200
-70 LET HEIGHT = 150
+60 LET WIDTH = 100
+70 LET HEIGHT = 80
 80 LET MAX_ITER = 50
 
 REM Classic Mandelbrot range
