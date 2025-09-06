@@ -230,6 +230,7 @@ class BasicParser:
     def parse_program(self) -> Dict[int, Any]:
         """Parses a complete BASIC program"""
         program = {}
+        unnumbered_line_counter = -1  # Use negative numbers for unnumbered lines
         
         while not self.match(TokenType.EOF):
             if self.match(TokenType.NEWLINE):
@@ -238,18 +239,28 @@ class BasicParser:
             
             line = self.parse_line()
             if line:
-                line_number, statement = line
-                program[line_number] = statement
+                line_number, statement, had_line_number = line
+                if not had_line_number:  # This was an unnumbered line
+                    original_line_number = line_number
+                    line_number = unnumbered_line_counter
+                    unnumbered_line_counter -= 1
+                    # Store both the statement and whether it had a line number
+                    program[line_number] = (statement, False)
+                else:
+                    # Store the statement and that it had a line number
+                    program[line_number] = (statement, True)
         
         return program
     
     def parse_line(self) -> Optional[tuple]:
         """Parses a line with optional line number"""
         line_number = None
+        had_line_number = False
         
         # Check line number
         if self.match(TokenType.NUMBER):
             line_number = int(self.current_token.value)
+            had_line_number = True
             self.advance()
         
         # Statement parsen
@@ -262,7 +273,7 @@ class BasicParser:
             self.error("Expected newline or end of file")
         
         if statement:
-            return (line_number or 0, statement)
+            return (line_number or 0, statement, had_line_number)
         return None
     
     def parse_statement(self):
@@ -808,7 +819,7 @@ class BasicInterpreter:
         has_graphics = any(
             isinstance(stmt, tuple) and len(stmt) > 0 and 
             stmt[0] in ['GRAPHICS', 'PLOT', 'LINE', 'CIRCLE', 'RECT', 'COLOR', 'PSET', 'CLS']
-            for stmt in self.program.values()
+            for stmt, _ in self.program.values()  # Extract statement from tuple
         )
         
         # Grafikfenster zurücksetzen falls es bereits läuft und das Programm Grafik verwendet
@@ -822,7 +833,7 @@ class BasicInterpreter:
         
         try:
             while self.running and self.current_line in self.program:
-                statement = self.program[self.current_line]
+                statement, _ = self.program[self.current_line]  # Extract statement, ignore had_line_number
                 self.goto_executed = False  # Reset flag before executing statement
                 self.execute_statement(statement)
                 
@@ -1122,7 +1133,7 @@ class BasicInterpreter:
             return
         
         while_line = self.while_stack[-1]
-        while_stmt = self.program[while_line]
+        while_stmt, _ = self.program[while_line]  # Extract statement, ignore had_line_number
         condition = self.evaluate_expression(while_stmt[1])
         
         if condition:
@@ -1141,7 +1152,7 @@ class BasicInterpreter:
             if line_num <= current:
                 continue
             
-            stmt = self.program[line_num]
+            stmt, _ = self.program[line_num]  # Extract statement, ignore had_line_number
             if stmt[0] == 'WHILE':
                 while_count += 1
             elif stmt[0] == 'WEND':
@@ -1242,7 +1253,13 @@ class BasicInterpreter:
     def list_program(self):
         """Listet das Programm auf"""
         for line_num in sorted(self.program.keys()):
-            print(f"{line_num} {self.format_statement(self.program[line_num])}")
+            statement, had_line_number = self.program[line_num]
+            if had_line_number and line_num > 0:
+                # Show with line number if it originally had one
+                print(f"{line_num} {self.format_statement(statement)}")
+            else:
+                # Show without line number if it originally didn't have one
+                print(self.format_statement(statement))
     
     def format_statement(self, statement):
         """Formatiert ein Statement für die Ausgabe"""
