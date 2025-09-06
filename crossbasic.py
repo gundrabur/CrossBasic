@@ -653,7 +653,6 @@ class GraphicsEngine:
         self.running = False
         self.current_color = (255, 255, 255)  # White
         self.background_color = (0, 0, 0)     # Black
-        self.thread = None
         
         # Color palette
         self.colors = {
@@ -678,27 +677,18 @@ class GraphicsEngine:
             self.screen.fill(self.background_color)
             pygame.display.flip()
             self.running = True
-            
-            # Start event thread
-            self.thread = threading.Thread(target=self._event_loop, daemon=True)
-            self.thread.start()
     
-    def _event_loop(self):
-        """Event loop for Pygame"""
-        clock = pygame.time.Clock()
-        while self.running:
+    def _handle_events(self):
+        """Handle pygame events - must be called from main thread on macOS"""
+        if self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
-            clock.tick(60)
     
     def close(self):
         """Closes the graphics window"""
         if self.running:
             self.running = False
-            # End thread
-            if self.thread and self.thread.is_alive():
-                self.thread.join(timeout=2.0)
             # Quit pygame
             try:
                 pygame.display.quit()
@@ -706,7 +696,6 @@ class GraphicsEngine:
             except:
                 pass  # Ignore errors when closing
             self.screen = None
-            self.thread = None
     
     def reset(self):
         """Completely resets the graphics window"""
@@ -724,6 +713,7 @@ class GraphicsEngine:
     def clear_screen(self):
         """Löscht den Bildschirm"""
         if self.screen:
+            self._handle_events()  # Handle events on main thread
             self.screen.fill(self.background_color)
             pygame.display.flip()
     
@@ -735,12 +725,14 @@ class GraphicsEngine:
     def plot_point(self, x: int, y: int):
         """Zeichnet einen Punkt"""
         if self.screen:
+            self._handle_events()  # Handle events on main thread
             pygame.draw.circle(self.screen, self.current_color, (int(x), int(y)), 1)
             pygame.display.flip()
     
     def draw_line(self, x1: int, y1: int, x2: int, y2: int):
         """Zeichnet eine Linie"""
         if self.screen:
+            self._handle_events()  # Handle events on main thread
             pygame.draw.line(self.screen, self.current_color, 
                            (int(x1), int(y1)), (int(x2), int(y2)))
             pygame.display.flip()
@@ -748,6 +740,7 @@ class GraphicsEngine:
     def draw_circle(self, x: int, y: int, radius: int):
         """Zeichnet einen Kreis"""
         if self.screen:
+            self._handle_events()  # Handle events on main thread
             pygame.draw.circle(self.screen, self.current_color, 
                              (int(x), int(y)), int(radius), 1)
             pygame.display.flip()
@@ -755,6 +748,7 @@ class GraphicsEngine:
     def draw_rect(self, x: int, y: int, width: int, height: int):
         """Zeichnet ein Rechteck"""
         if self.screen:
+            self._handle_events()  # Handle events on main thread
             pygame.draw.rect(self.screen, self.current_color, 
                            (int(x), int(y), int(width), int(height)), 1)
             pygame.display.flip()
