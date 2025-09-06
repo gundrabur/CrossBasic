@@ -6,9 +6,9 @@ REM This version measures how long the Mandelbrot calculation takes
 30 PRINT
 
 REM Parameters for benchmark
-40 LET WIDTH = 80
-50 LET HEIGHT = 60
-60 LET MAX_ITER = 30
+40 LET WIDTH = 160
+50 LET HEIGHT = 120
+60 LET MAX_ITER = 50
 
 70 LET XMIN = -2.0
 80 LET XMAX = 1.0
@@ -62,10 +62,10 @@ REM End timing
 410 LET TOTAL_TIME = END_TIME - START_TIME
 
 420 PRINT "Benchmark complete!"
-430 PRINT "Total calculation time:"; INT(TOTAL_TIME * 1000); "milliseconds"
+430 PRINT "Total calculation time: "; INT(TOTAL_TIME * 1000); " milliseconds"
 440 LET PIXELS = WIDTH * HEIGHT
-450 PRINT "Pixels calculated:"; PIXELS
+450 PRINT "Pixels calculated: "; PIXELS
 460 LET PIXELS_PER_SEC = PIXELS / TOTAL_TIME
-470 PRINT "Performance:"; INT(PIXELS_PER_SEC); "pixels/second"
+470 PRINT "Performance: "; INT(PIXELS_PER_SEC); " pixels/second"
 
 480 END
