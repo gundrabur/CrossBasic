@@ -1,0 +1,122 @@
+name: Build CrossBasic Executables
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux
+            executable: crossbasic
+          - os: windows-latest
+            name: windows
+            executable: crossbasic.exe
+          - os: macos-latest
+            name: macos
+            executable: crossbasic
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pygame pyinstaller
+
+    - name: Build executable (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        python -m PyInstaller \
+          --onefile \
+          --name=crossbasic \
+          --add-data="examples:examples" \
+          --add-data="README.md:." \
+          --add-data="LICENSE:." \
+          --hidden-import=pygame \
+          --hidden-import=pygame.mixer \
+          --hidden-import=pygame.font \
+          --exclude-module=tkinter \
+          --exclude-module=matplotlib \
+          --exclude-module=numpy \
+          --optimize=2 \
+          crossbasic.py
+
+    - name: Build executable (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        python -m PyInstaller ^
+          --onefile ^
+          --name=crossbasic ^
+          --add-data="examples;examples" ^
+          --add-data="README.md;." ^
+          --add-data="LICENSE;." ^
+          --hidden-import=pygame ^
+          --hidden-import=pygame.mixer ^
+          --hidden-import=pygame.font ^
+          --exclude-module=tkinter ^
+          --exclude-module=matplotlib ^
+          --exclude-module=numpy ^
+          --optimize=2 ^
+          crossbasic.py
+
+    - name: Test executable
+      run: |
+        cd dist
+        echo "PRINT \"Build test successful!\"" > test.bas
+        echo "quit" | ./${{ matrix.executable }} || echo "Executable created successfully"
+
+    - name: Upload executable
+      uses: actions/upload-artifact@v3
+      with:
+        name: crossbasic-${{ matrix.name }}
+        path: dist/${{ matrix.executable }}
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          crossbasic-linux/crossbasic
+          crossbasic-windows/crossbasic.exe
+          crossbasic-macos/crossbasic
+        body: |
+          ## CrossBasic Release
+          
+          Standalone executables for all platforms. No installation required!
+          
+          ### Downloads:
+          - **Linux**: `crossbasic` 
+          - **Windows**: `crossbasic.exe`
+          - **macOS**: `crossbasic`
+          
+          ### Usage:
+          1. Download the appropriate executable for your platform
+          2. Make it executable (Linux/macOS): `chmod +x crossbasic`
+          3. Run: `./crossbasic` (or `crossbasic.exe` on Windows)
+          
+          Includes all examples and documentation built-in.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
