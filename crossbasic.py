@@ -1321,6 +1321,12 @@ class BasicInterpreter:
                 # Einfache Befehle
                 return command
             
+            elif command == 'COMMENT':
+                # REM Kommentar formatieren
+                if len(statement) > 1:
+                    return f"REM {statement[1]}"
+                return "REM"
+            
             elif command == 'NEXT':
                 # NEXT Statement
                 if len(statement) > 1:

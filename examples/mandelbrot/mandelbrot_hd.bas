@@ -37,7 +37,7 @@ REM Main calculation
 230 FOR PIXELX = 0 TO WIDTH - 1
 240 LET CX = XMIN + PIXELX * XSTEP
 
-REM Mandelbrot calculation without GOTO problems
+REM Mandelbrot calculation
 250 LET ZX = 0
 260 LET ZY = 0
 270 LET COLOR_VAL = 0
@@ -71,7 +71,7 @@ REM Draw pixel (centered)
 460 NEXT PIXELX
 
 REM Progress indicator every 10 lines
-470 IF PIXELY / 10 * 10 = PIXELY THEN PRINT "Line"; PIXELY; "of"; HEIGHT; "("; INT(PIXELY * 100 / HEIGHT); "%)"
+REM 470 IF PIXELY / 10 * 10 = PIXELY THEN PRINT "Line"; PIXELY; "of"; HEIGHT; "("; INT(PIXELY * 100 / HEIGHT); "%)"
 
 480 NEXT PIXELY
 
