@@ -230,7 +230,8 @@ class BasicParser:
     def parse_program(self) -> Dict[int, Any]:
         """Parses a complete BASIC program"""
         program = {}
-        unnumbered_line_counter = -1  # Use negative numbers for unnumbered lines
+        program_lines = []  # Store lines in original order for LIST command
+        line_position = 0   # Track position in file
         
         while not self.match(TokenType.EOF):
             if self.match(TokenType.NEWLINE):
@@ -240,16 +241,23 @@ class BasicParser:
             line = self.parse_line()
             if line:
                 line_number, statement, had_line_number = line
-                if not had_line_number:  # This was an unnumbered line
-                    original_line_number = line_number
-                    line_number = unnumbered_line_counter
-                    unnumbered_line_counter -= 1
-                    # Store both the statement and whether it had a line number
-                    program[line_number] = (statement, False)
-                else:
-                    # Store the statement and that it had a line number
-                    program[line_number] = (statement, True)
+                
+                # For LIST command: store in order with display info
+                program_lines.append({
+                    'statement': statement,
+                    'line_number': line_number if had_line_number else None,
+                    'had_line_number': had_line_number,
+                    'position': line_position
+                })
+                
+                # For execution: store numbered lines in program dict
+                if had_line_number:
+                    program[line_number] = (statement, True, line_position)
+                
+                line_position += 1
         
+        # Store the ordered lines for LIST command
+        program['__lines__'] = program_lines
         return program
     
     def parse_line(self) -> Optional[tuple]:
@@ -819,7 +827,9 @@ class BasicInterpreter:
         has_graphics = any(
             isinstance(stmt, tuple) and len(stmt) > 0 and 
             stmt[0] in ['GRAPHICS', 'PLOT', 'LINE', 'CIRCLE', 'RECT', 'COLOR', 'PSET', 'CLS']
-            for stmt, _ in self.program.values()  # Extract statement from tuple
+            for key, value in self.program.items() 
+            if key != '__lines__' and isinstance(value, tuple) and len(value) >= 3
+            for stmt, _, _ in [value]  # Extract statement from tuple
         )
         
         # Grafikfenster zurücksetzen falls es bereits läuft und das Programm Grafik verwendet
@@ -828,19 +838,30 @@ class BasicInterpreter:
             self.graphics.reset()
         
         self.running = True
-        self.current_line = min(self.program.keys()) if self.program else 0
+        program_keys = [k for k in self.program.keys() if k != '__lines__']
+        self.current_line = min(program_keys) if program_keys else 0
         self.goto_executed = False  # Flag to track if GOTO was executed
         
         try:
             while self.running and self.current_line in self.program:
-                statement, _ = self.program[self.current_line]  # Extract statement, ignore had_line_number
+                if self.current_line == '__lines__':
+                    # Skip the special __lines__ entry
+                    next_lines = [line for line in sorted(self.program.keys()) 
+                                 if line > self.current_line and line != '__lines__']
+                    if next_lines:
+                        self.current_line = next_lines[0]
+                    else:
+                        break
+                    continue
+                    
+                statement, _, _ = self.program[self.current_line]  # Extract statement, ignore had_line_number and position
                 self.goto_executed = False  # Reset flag before executing statement
                 self.execute_statement(statement)
                 
                 if self.running and not self.goto_executed:
                     # Only advance to next line if GOTO wasn't executed
                     next_lines = [line for line in sorted(self.program.keys()) 
-                                 if line > self.current_line]
+                                 if line > self.current_line and line != '__lines__']
                     if next_lines:
                         self.current_line = next_lines[0]
                     else:
@@ -1133,7 +1154,7 @@ class BasicInterpreter:
             return
         
         while_line = self.while_stack[-1]
-        while_stmt, _ = self.program[while_line]  # Extract statement, ignore had_line_number
+        while_stmt, _, _ = self.program[while_line]  # Extract statement, ignore had_line_number and position
         condition = self.evaluate_expression(while_stmt[1])
         
         if condition:
@@ -1149,10 +1170,10 @@ class BasicInterpreter:
         current = self.current_line
         
         for line_num in sorted(self.program.keys()):
-            if line_num <= current:
+            if line_num <= current or line_num == '__lines__':
                 continue
             
-            stmt, _ = self.program[line_num]  # Extract statement, ignore had_line_number
+            stmt, _, _ = self.program[line_num]  # Extract statement, ignore had_line_number and position
             if stmt[0] == 'WHILE':
                 while_count += 1
             elif stmt[0] == 'WEND':
@@ -1252,14 +1273,27 @@ class BasicInterpreter:
     
     def list_program(self):
         """Listet das Programm auf"""
-        for line_num in sorted(self.program.keys()):
-            statement, had_line_number = self.program[line_num]
-            if had_line_number and line_num > 0:
-                # Show with line number if it originally had one
-                print(f"{line_num} {self.format_statement(statement)}")
-            else:
-                # Show without line number if it originally didn't have one
-                print(self.format_statement(statement))
+        if '__lines__' in self.program:
+            # Use the original order from the file
+            for line_info in self.program['__lines__']:
+                statement = line_info['statement']
+                line_number = line_info['line_number']
+                had_line_number = line_info['had_line_number']
+                
+                if had_line_number and line_number is not None:
+                    # Show with line number if it originally had one
+                    print(f"{line_number} {self.format_statement(statement)}")
+                else:
+                    # Show without line number if it originally didn't have one
+                    print(self.format_statement(statement))
+        else:
+            # Fallback to old method if __lines__ is not available
+            for line_num in sorted([k for k in self.program.keys() if k != '__lines__']):
+                statement, had_line_number = self.program[line_num][:2]
+                if had_line_number and line_num > 0:
+                    print(f"{line_num} {self.format_statement(statement)}")
+                else:
+                    print(self.format_statement(statement))
     
     def format_statement(self, statement):
         """Formatiert ein Statement für die Ausgabe"""
