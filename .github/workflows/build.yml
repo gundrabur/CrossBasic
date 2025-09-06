@@ -29,7 +29,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
@@ -81,7 +81,7 @@ jobs:
         echo "quit" | ./${{ matrix.executable }} || echo "Executable created successfully"
 
     - name: Upload executable
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: crossbasic-${{ matrix.name }}
         path: dist/${{ matrix.executable }}
@@ -93,15 +93,18 @@ jobs:
     
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
-      
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        merge-multiple: true
+        
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
-          crossbasic-linux/crossbasic
-          crossbasic-windows/crossbasic.exe
-          crossbasic-macos/crossbasic
+          artifacts/crossbasic-linux/crossbasic
+          artifacts/crossbasic-windows/crossbasic.exe
+          artifacts/crossbasic-macos/crossbasic
         body: |
           ## CrossBasic Release
           
