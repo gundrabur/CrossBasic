@@ -115,6 +115,7 @@ CrossBasic features a modern, cross-platform line editor with advanced editing c
 
 ### Editor Features
 - **Line Numbers**: Lines starting with numbers are added to the program
+- **Line Overwrite**: Entering an existing line number overwrites that line
 - **Immediate Execution**: Lines without numbers execute immediately
 - **Command History**: Navigate previous commands with UP/DOWN arrows
 - **Cursor Control**: Move within lines using LEFT/RIGHT arrows

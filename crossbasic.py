@@ -785,6 +785,7 @@ class BasicInterpreter:
         self.while_stack = []
         self.graphics = GraphicsEngine()
         self.goto_executed = False  # Flag to track GOTO execution
+        self._last_operation_results = {}  # Track add/overwrite operations
         
         # Built-in functions
         self.builtin_functions = {
@@ -813,6 +814,30 @@ class BasicInterpreter:
         self.call_stack = []
         self.for_stack = []
         self.while_stack = []
+        self._last_operation_results = {}
+    
+    def get_last_line_operation(self, line_number: int) -> str:
+        """Get the result of the last operation for a specific line number"""
+        return self._last_operation_results.get(line_number, 'unknown')
+    
+    def clear_operation_results(self):
+        """Clear the operation results tracking"""
+        self._last_operation_results = {}
+    
+    def delete_line(self, line_number: int) -> bool:
+        """Delete a specific line from the program"""
+        if line_number in self.program:
+            del self.program[line_number]
+            # Also remove from __lines__ list if it exists
+            if '__lines__' in self.program:
+                self.program['__lines__'] = [
+                    line_info for line_info in self.program['__lines__']
+                    if not (line_info['had_line_number'] and line_info['line_number'] == line_number)
+                ]
+            # Track the deletion operation
+            self._last_operation_results[line_number] = 'deleted'
+            return True
+        return False
     
     def load_program(self, program_text: str):
         """Lädt ein BASIC-Programm"""
@@ -822,16 +847,53 @@ class BasicInterpreter:
             parser = BasicParser(tokens)
             new_program = parser.parse_program()
             
+            # Track which lines were added vs overwritten for feedback
+            self._last_operation_results = {}
+            
             # Merge with existing program instead of replacing
             for key, value in new_program.items():
                 if key == '__lines__':
-                    # Merge line information
+                    # Handle line information with overwrite detection
                     if '__lines__' not in self.program:
                         self.program['__lines__'] = []
-                    self.program['__lines__'].extend(value)
+                    
+                    # Process each new line entry
+                    for new_line_info in value:
+                        line_number = new_line_info['line_number']
+                        had_line_number = new_line_info['had_line_number']
+                        
+                        if had_line_number and line_number is not None:
+                            # Check if this line number already exists
+                            existing_index = None
+                            for i, existing_line_info in enumerate(self.program['__lines__']):
+                                if (existing_line_info['had_line_number'] and 
+                                    existing_line_info['line_number'] == line_number):
+                                    existing_index = i
+                                    break
+                            
+                            if existing_index is not None:
+                                # Overwrite existing line
+                                self.program['__lines__'][existing_index] = new_line_info
+                                self._last_operation_results[line_number] = 'overwritten'
+                            else:
+                                # Add new line
+                                self.program['__lines__'].append(new_line_info)
+                                self._last_operation_results[line_number] = 'added'
+                        else:
+                            # Non-numbered line, just append
+                            self.program['__lines__'].append(new_line_info)
+                            
                 elif isinstance(key, int):
+                    # Check if line number already exists
+                    line_existed = key in self.program
                     # Add or update numbered line
                     self.program[key] = value
+                    
+                    # Track operation result
+                    if line_existed:
+                        self._last_operation_results[key] = 'overwritten'
+                    else:
+                        self._last_operation_results[key] = 'added'
             
             return True
         except Exception as e:
@@ -1297,18 +1359,29 @@ class BasicInterpreter:
     def list_program(self):
         """Listet das Programm auf"""
         if '__lines__' in self.program:
-            # Use the original order from the file
+            # Sort lines by line number for proper order
+            lines_with_numbers = []
+            lines_without_numbers = []
+            
             for line_info in self.program['__lines__']:
                 statement = line_info['statement']
                 line_number = line_info['line_number']
                 had_line_number = line_info['had_line_number']
                 
                 if had_line_number and line_number is not None:
-                    # Show with line number if it originally had one
-                    print(f"{line_number} {self.format_statement(statement)}")
+                    lines_with_numbers.append((line_number, statement))
                 else:
-                    # Show without line number if it originally didn't have one
-                    print(self.format_statement(statement))
+                    lines_without_numbers.append(statement)
+            
+            # Sort numbered lines by line number
+            lines_with_numbers.sort(key=lambda x: x[0])
+            
+            # Display numbered lines first, then unnumbered lines
+            for line_number, statement in lines_with_numbers:
+                print(f"{line_number} {self.format_statement(statement)}")
+            
+            for statement in lines_without_numbers:
+                print(self.format_statement(statement))
         else:
             # Fallback to old method if __lines__ is not available
             for line_num in sorted([k for k in self.program.keys() if k != '__lines__']):
@@ -1512,6 +1585,28 @@ class BasicEditor:
             pass
         
         return False
+    
+    def is_line_number_only(self, line: str) -> tuple[bool, int]:
+        """Check if line contains only a line number (for deletion)"""
+        line = line.strip()
+        if not line:
+            return False, 0
+        
+        try:
+            lexer = BasicLexer(line)
+            tokens = lexer.tokenize()
+            # Should have exactly one number token (plus EOF token)
+            if (len(tokens) == 2 and 
+                tokens[0].type == TokenType.NUMBER and 
+                tokens[1].type == TokenType.EOF):
+                first_token = tokens[0].value
+                # Check if it's an integer (line numbers should be integers)
+                if '.' not in str(first_token):
+                    return True, int(first_token)
+        except:
+            pass
+        
+        return False, 0
     
     def add_to_history(self, line: str):
         """Add a line to the command history"""
@@ -1753,6 +1848,7 @@ class BasicEditor:
         print("CrossBasic Line Editor v1.0")
         print("Enter BASIC commands. Lines starting with numbers are added to the program.")
         print("Commands without line numbers are executed immediately.")
+        print("Enter just a line number (e.g., '10') to delete that line.")
         print("Type 'help' for help, 'list' to show program, 'run' to execute, 'quit' to exit.")
         
         # Display platform-specific features
@@ -1816,6 +1912,19 @@ class BasicEditor:
                     self.save_program(filename)
                     continue
                 
+                # Check if it's a line number only (for deletion)
+                is_line_only, line_num = self.is_line_number_only(line)
+                if is_line_only:
+                    # Clear previous operation results
+                    self.interpreter.clear_operation_results()
+                    
+                    # Delete the line
+                    if self.interpreter.delete_line(line_num):
+                        print(f"Line {line_num} deleted")
+                    else:
+                        print(f"Line {line_num} not found")
+                    continue
+                
                 # Check syntax first
                 is_valid, error_msg = self.check_syntax(line)
                 if not is_valid:
@@ -1824,9 +1933,29 @@ class BasicEditor:
                 
                 # Check if it has a line number
                 if self.has_line_number(line):
+                    # Clear previous operation results
+                    self.interpreter.clear_operation_results()
+                    
                     # Add to program
                     if self.interpreter.load_program(line):
-                        print("Line added to program")
+                        # Extract line number to check operation result
+                        try:
+                            lexer = BasicLexer(line)
+                            tokens = lexer.tokenize()
+                            if tokens and tokens[0].type == TokenType.NUMBER:
+                                line_number = int(tokens[0].value)
+                                operation = self.interpreter.get_last_line_operation(line_number)
+                                
+                                if operation == 'overwritten':
+                                    print(f"Line {line_number} overwritten")
+                                elif operation == 'added':
+                                    print(f"Line {line_number} added to program")
+                                else:
+                                    print("Line added to program")
+                            else:
+                                print("Line added to program")
+                        except:
+                            print("Line added to program")
                     else:
                         print("Error adding line to program")
                 else:
@@ -1896,6 +2025,8 @@ Editor Features:
     - Enter BASIC commands directly
     - Lines starting with numbers are added to the program
     - Lines without numbers are executed immediately
+    - Existing line numbers are overwritten with new content
+    - Enter just a line number (e.g., "10") to delete that line
     - Cross-platform cursor and history support
     - Automatic syntax checking before execution
 
