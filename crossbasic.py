@@ -824,6 +824,16 @@ class BasicInterpreter:
         """Clear the operation results tracking"""
         self._last_operation_results = {}
     
+    def get_line_content(self, line_number: int) -> str:
+        """Get the content of a specific line for editing"""
+        if line_number in self.program:
+            statement, had_line_number = self.program[line_number][:2]
+            if had_line_number:
+                return f"{line_number} {self.format_statement(statement)}"
+            else:
+                return self.format_statement(statement)
+        return None
+    
     def delete_line(self, line_number: int) -> bool:
         """Delete a specific line from the program"""
         if line_number in self.program:
@@ -1825,6 +1835,156 @@ class BasicEditor:
                 else:
                     print("", end="", flush=True)
     
+    def edit_line_with_prepopulated_content(self, initial_content: str) -> str:
+        """Edit line with pre-populated content that can be modified using cursor keys"""
+        try:
+            if self.has_msvcrt and os.name == 'nt':
+                # Windows: Use msvcrt for advanced editing with pre-populated content
+                return self.windows_advanced_input_with_content(initial_content)
+            elif self.has_termios and os.name != 'nt':
+                # Unix-like systems: Use termios for advanced editing
+                return self.unix_advanced_input_with_content(initial_content)
+            elif self.has_readline and os.name != 'nt':
+                # Unix-like systems: Use readline with pre-filled content
+                return self.readline_input_with_content(initial_content)
+            else:
+                # Fallback: Show content and ask for new input
+                print(f"[Prepopulated: {initial_content}]")
+                return self.simple_input()
+        except (KeyboardInterrupt, EOFError):
+            return ""
+    
+    def windows_advanced_input_with_content(self, initial_content: str) -> str:
+        """Windows advanced input with pre-populated content"""
+        import msvcrt
+        
+        # Display the initial content and position cursor at the end
+        print(f"BASIC> {initial_content}", end='', flush=True)
+        
+        buffer = list(initial_content)
+        cursor_pos = len(buffer)
+        
+        while True:
+            char = msvcrt.getch()
+            
+            if char == b'\r':  # Enter
+                print()  # New line
+                return ''.join(buffer)
+            elif char == b'\x03':  # Ctrl+C
+                raise KeyboardInterrupt()
+            elif char == b'\x08':  # Backspace
+                if cursor_pos > 0:
+                    buffer.pop(cursor_pos - 1)
+                    cursor_pos -= 1
+                    self._redraw_line(buffer, cursor_pos, "BASIC> ")
+            elif char == b'\xe0':  # Extended key (arrow keys, etc.)
+                extended = msvcrt.getch()
+                if extended == b'K':  # Left arrow
+                    if cursor_pos > 0:
+                        cursor_pos -= 1
+                        self._redraw_line(buffer, cursor_pos, "BASIC> ")
+                elif extended == b'M':  # Right arrow
+                    if cursor_pos < len(buffer):
+                        cursor_pos += 1
+                        self._redraw_line(buffer, cursor_pos, "BASIC> ")
+                elif extended == b'S':  # Delete
+                    if cursor_pos < len(buffer):
+                        buffer.pop(cursor_pos)
+                        self._redraw_line(buffer, cursor_pos, "BASIC> ")
+                elif extended == b'H':  # Up arrow
+                    # Keep current content (already populated)
+                    pass
+                elif extended == b'P':  # Down arrow
+                    # Keep current content (already populated)
+                    pass
+            elif char >= b' ' and char <= b'~':  # Printable characters
+                buffer.insert(cursor_pos, char.decode('utf-8'))
+                cursor_pos += 1
+                self._redraw_line(buffer, cursor_pos, "BASIC> ")
+    
+    def unix_advanced_input_with_content(self, initial_content: str) -> str:
+        """Unix advanced input with pre-populated content"""
+        import termios
+        import tty
+        import sys
+        
+        # Display the initial content
+        print(f"BASIC> {initial_content}", end='', flush=True)
+        
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        
+        try:
+            tty.setraw(sys.stdin.fileno())
+            
+            buffer = list(initial_content)
+            cursor_pos = len(buffer)
+            
+            while True:
+                char = sys.stdin.read(1)
+                
+                if char == '\r' or char == '\n':  # Enter
+                    print()
+                    return ''.join(buffer)
+                elif char == '\x03':  # Ctrl+C
+                    raise KeyboardInterrupt()
+                elif char == '\x7f' or char == '\x08':  # Backspace/Delete
+                    if cursor_pos > 0:
+                        buffer.pop(cursor_pos - 1)
+                        cursor_pos -= 1
+                        self._redraw_line(buffer, cursor_pos, "BASIC> ")
+                elif char == '\x1b':  # Escape sequence (arrow keys)
+                    char = sys.stdin.read(1)
+                    if char == '[':
+                        char = sys.stdin.read(1)
+                        if char == 'D':  # Left arrow
+                            if cursor_pos > 0:
+                                cursor_pos -= 1
+                                self._redraw_line(buffer, cursor_pos, "BASIC> ")
+                        elif char == 'C':  # Right arrow
+                            if cursor_pos < len(buffer):
+                                cursor_pos += 1
+                                self._redraw_line(buffer, cursor_pos, "BASIC> ")
+                        elif char == '3':  # Delete key
+                            delete_char = sys.stdin.read(1)  # Read the '~'
+                            if delete_char == '~' and cursor_pos < len(buffer):
+                                buffer.pop(cursor_pos)
+                                self._redraw_line(buffer, cursor_pos, "BASIC> ")
+                elif char.isprintable():
+                    buffer.insert(cursor_pos, char)
+                    cursor_pos += 1
+                    self._redraw_line(buffer, cursor_pos, "BASIC> ")
+                    
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    
+    def readline_input_with_content(self, initial_content: str) -> str:
+        """Readline input with pre-populated content"""
+        if self.has_readline:
+            import readline
+            
+            # Set the pre-populated content in readline
+            def pre_input_hook():
+                readline.insert_text(initial_content)
+                readline.redisplay()
+            
+            readline.set_pre_input_hook(pre_input_hook)
+            try:
+                result = input("BASIC> ")
+                return result
+            finally:
+                readline.set_pre_input_hook()  # Clear the hook
+        else:
+            print(f"BASIC> {initial_content}")
+            return input("BASIC> ")
+    
+    def _redraw_line(self, buffer: list, cursor_pos: int, prompt: str):
+        """Redraw the current input line with cursor positioning"""
+        # Clear the line and redraw
+        print(f'\r{prompt}{"".join(buffer)}{" " * 10}', end='')
+        # Position cursor
+        print(f'\r{prompt}{"".join(buffer[:cursor_pos])}', end='', flush=True)
+    
     def edit_line(self) -> str:
         """Edit a line with platform-appropriate terminal support"""
         try:
@@ -1849,6 +2009,7 @@ class BasicEditor:
         print("Enter BASIC commands. Lines starting with numbers are added to the program.")
         print("Commands without line numbers are executed immediately.")
         print("Enter just a line number (e.g., '10') to delete that line.")
+        print("Use 'edit 10' to edit an existing line.")
         print("Type 'help' for help, 'list' to show program, 'run' to execute, 'quit' to exit.")
         
         # Display platform-specific features
@@ -1910,6 +2071,47 @@ class BasicEditor:
                 elif line.lower().startswith('save '):
                     filename = line[5:].strip()
                     self.save_program(filename)
+                    continue
+                elif line.lower().startswith('edit '):
+                    # Edit command: EDIT <line_number>
+                    try:
+                        line_num_str = line[5:].strip()
+                        line_num = int(line_num_str)
+                        
+                        # Get the current content of the line
+                        current_content = self.interpreter.get_line_content(line_num)
+                        if current_content:
+                            print(f"Editing line {line_num}:")
+                            print(f"Current: {current_content}")
+                            print("Use cursor keys to edit, Enter to save, Ctrl+C to cancel")
+                            
+                            # Pre-populate the editor with the current line content
+                            # Add the current content to history and set it as initial input
+                            edited_content = self.edit_line_with_prepopulated_content(current_content)
+                            
+                            if edited_content and edited_content.strip() != current_content.strip():
+                                # Content was changed, validate and update
+                                is_valid, error_msg = self.check_syntax(edited_content)
+                                if is_valid:
+                                    self.interpreter.clear_operation_results()
+                                    if self.interpreter.load_program(edited_content):
+                                        print(f"Line {line_num} updated")
+                                    else:
+                                        print("Error updating line")
+                                else:
+                                    print(f"Syntax Error: {error_msg}")
+                            elif edited_content and edited_content.strip() == current_content.strip():
+                                print("No changes made")
+                            else:
+                                print("Edit cancelled")
+                        else:
+                            print(f"Line {line_num} not found")
+                    except ValueError:
+                        print("Invalid line number. Usage: EDIT <line_number>")
+                    except KeyboardInterrupt:
+                        print("\nEdit cancelled")
+                    except Exception as e:
+                        print(f"Error in edit command: {e}")
                     continue
                 
                 # Check if it's a line number only (for deletion)
@@ -2027,6 +2229,8 @@ Editor Features:
     - Lines without numbers are executed immediately
     - Existing line numbers are overwritten with new content
     - Enter just a line number (e.g., "10") to delete that line
+    - Use 'edit <line>' to modify existing lines with pre-populated content
+    - When editing, the line appears ready to modify with cursor control
     - Cross-platform cursor and history support
     - Automatic syntax checking before execution
 
@@ -2047,6 +2251,7 @@ Interpreter Commands:
     new           - Clears the current program
     list          - Shows the loaded program
     run           - Runs the program
+    edit <line>   - Edit an existing line with pre-populated content
     load <file>   - Loads a program from a file
     save <file>   - Saves the program to a file
     quit/exit     - Exits the interpreter
