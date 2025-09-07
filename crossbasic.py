@@ -849,6 +849,71 @@ class BasicInterpreter:
             return True
         return False
     
+    def update_line(self, line_number: int, new_content: str) -> bool:
+        """Update a specific line in the program"""
+        try:
+            # Parse the new content
+            line_content = new_content.strip()
+            has_line_number = False
+            actual_line_number = line_number
+            
+            if line_content and line_content[0].isdigit():
+                # Extract line number from content
+                parts = line_content.split(None, 1)
+                try:
+                    actual_line_number = int(parts[0])
+                    has_line_number = True
+                    if len(parts) > 1:
+                        line_content = parts[1]
+                    else:
+                        line_content = ""
+                except ValueError:
+                    pass
+            
+            # Create lexer and parser with the content
+            if line_content:
+                lexer = BasicLexer(line_content)
+                tokens = lexer.tokenize()
+                parser = BasicParser(tokens)
+                
+                # Parse the statement
+                if tokens and tokens[0].type != TokenType.EOF:
+                    statement = parser.parse_statement()
+                    
+                    # Delete the old line
+                    self.delete_line(line_number)
+                    
+                    # Add the new line (using same format as parse_line: statement, had_line_number, position)
+                    self.program[actual_line_number] = (statement, has_line_number, 0)
+                    
+                    # Update __lines__ if it exists
+                    if '__lines__' in self.program:
+                        # Remove old entry
+                        self.program['__lines__'] = [
+                            line_info for line_info in self.program['__lines__']
+                            if not (line_info['had_line_number'] and line_info['line_number'] == line_number)
+                        ]
+                        # Add new entry
+                        self.program['__lines__'].append({
+                            'line_number': actual_line_number,
+                            'had_line_number': has_line_number,
+                            'statement': statement
+                        })
+                    
+                    # Track the update operation
+                    self._last_operation_results[actual_line_number] = 'updated'
+                    return True
+                else:
+                    # Empty statement - delete the line
+                    return self.delete_line(line_number)
+            else:
+                # Empty line - delete it
+                return self.delete_line(line_number)
+                
+        except Exception as e:
+            print(f"Error updating line: {e}")
+            return False
+    
     def load_program(self, program_text: str):
         """Lädt ein BASIC-Programm"""
         try:
@@ -2094,7 +2159,7 @@ class BasicEditor:
                                 is_valid, error_msg = self.check_syntax(edited_content)
                                 if is_valid:
                                     self.interpreter.clear_operation_results()
-                                    if self.interpreter.load_program(edited_content):
+                                    if self.interpreter.update_line(line_num, edited_content):
                                         print(f"Line {line_num} updated")
                                     else:
                                         print("Error updating line")
