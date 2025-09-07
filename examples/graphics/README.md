@@ -58,6 +58,94 @@ CrossBasic> run
 - Conditional color selection based on algorithms
 - Complex loop structures
 
+---
+
+### `lissajous_simple.bas` - Interactive Lissajous Curves
+**Purpose**: Mathematical curve visualization with step-by-step demonstration
+**Learning Goals**:
+- Understanding parametric equations
+- Frequency ratio effects on curve shapes
+- Interactive program flow
+- Mathematical art generation
+
+**Usage**:
+```bash
+CrossBasic> load examples/graphics/lissajous_simple.bas
+CrossBasic> run
+```
+
+**What gets drawn**:
+- **1:1 ratio**: Perfect circle
+- **1:2 ratio**: Classic figure-8 pattern
+- **2:3 ratio**: Complex looping curve
+- **3:4 ratio**: Intricate woven pattern
+- **Comparison view**: All patterns side by side
+
+**What you'll learn**:
+- Parametric equations: X = sin(A*t), Y = sin(B*t)
+- How frequency ratios create different patterns
+- Interactive program flow with user input
+- Mathematical visualization techniques
+
+---
+
+### `lissajous_demo.bas` - Advanced Lissajous Patterns
+**Purpose**: Multiple Lissajous curves with different parameters
+**Learning Goals**:
+- Advanced mathematical graphics
+- Multiple curve overlays
+- Phase shift effects
+- Animation concepts
+
+**Usage**:
+```bash
+CrossBasic> load examples/graphics/lissajous_demo.bas
+CrossBasic> run
+```
+
+**What gets drawn**:
+- **3:2 frequency ratio**: Red harmonic pattern
+- **5:4 ratio with phase**: Green shifted curve
+- **7:5 ratio**: Blue complex pattern
+- **Animated 4:3**: Yellow morphing curve
+- **Decorative elements**: Axes and reference circles
+
+**What you'll learn**:
+- Advanced parametric equations
+- Phase shift effects in curves
+- Multi-curve composition
+- Animation through parameter variation
+
+---
+
+### `lissajous_gallery.bas` - Complete Lissajous Gallery
+**Purpose**: Comprehensive display of various Lissajous patterns
+**Learning Goals**:
+- Pattern gallery creation
+- Advanced mathematical visualization
+- Multi-pattern layout design
+- Complex animation sequences
+
+**Usage**:
+```bash
+CrossBasic> load examples/graphics/lissajous_gallery.bas
+CrossBasic> run
+```
+
+**What gets drawn**:
+- **Figure-8**: Simple 1:2 harmonic in top-left
+- **Three-leaf rose**: 3:1 complex oscillation in top-right
+- **Complex knot**: 5:3 intricate weaving in bottom-left
+- **Spirograph-like**: 7:4 with phase shift in bottom-right
+- **Animated center**: Morphing pattern with changing parameters
+- **Decorative frames**: Borders and coordinate references
+
+**What you'll learn**:
+- Gallery-style program layout
+- Multiple pattern positioning
+- Advanced animation techniques
+- Complex mathematical art creation
+
 ## 🎨 Graphics Commands Overview
 
 ### Initialization
@@ -99,7 +187,10 @@ COLOR 9    ' Orange
 ## 🎯 Recommended Learning Order
 
 1. **Start**: `graphics_demo.bas` - Learn basic commands
-2. **Deepen**: `pattern_demo.bas` - Complex algorithms
+2. **Mathematical basics**: `lissajous_simple.bas` - Interactive mathematical curves
+3. **Advanced patterns**: `pattern_demo.bas` - Complex algorithms
+4. **Mathematical art**: `lissajous_demo.bas` - Multiple Lissajous patterns
+5. **Gallery showcase**: `lissajous_gallery.bas` - Complete pattern collection
 
 ## 💡 Programming Tips
 
@@ -133,6 +224,24 @@ FOR X = 0 TO 800 STEP 40
 NEXT X
 ```
 
+### Lissajous Curves
+```basic
+' Basic Lissajous curve (parametric equations)
+FOR T = 0 TO 628 STEP 3
+    X = 400 + 150 * SIN(3 * T / 100)
+    Y = 300 + 150 * SIN(2 * T / 100)
+    PSET X, Y
+NEXT T
+
+' With phase shift
+PHASE = 1.57
+FOR T = 0 TO 628 STEP 3
+    X = 400 + 150 * SIN(5 * T / 100 + PHASE)
+    Y = 300 + 150 * SIN(3 * T / 100)
+    PSET X, Y
+NEXT T
+```
+
 ### Performance Tips
 - Use `STEP` in loops for fewer points
 - Limit the number of drawing operations
@@ -152,12 +261,14 @@ NEXT X
 ### Simple Projects
 - Geometric shapes
 - Simple animations (with loops)
-- Mathematical curves
+- Mathematical curves (circles, spirals)
+- Lissajous patterns and variations
 - Pixel art
 
 ### Advanced Projects  
 - Fractals (see `../mandelbrot/`)
-- Complex patterns
+- Complex Lissajous galleries
+- Interactive mathematical visualizations
 - Simulations
 - Data visualization
 
