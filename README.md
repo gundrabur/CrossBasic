@@ -104,6 +104,50 @@ Square root of 16: 4.0
 Random number: 42
 ```
 
+## ⌨️ Interactive Line Editor
+
+CrossBasic features a modern, cross-platform line editor with advanced editing capabilities:
+
+### Cross-Platform Support
+- **Windows**: Full cursor control using `msvcrt`
+- **macOS/Linux**: Full cursor control using `termios` 
+- **Fallback**: Command history using `readline` or basic input
+
+### Editor Features
+- **Line Numbers**: Lines starting with numbers are added to the program
+- **Immediate Execution**: Lines without numbers execute immediately
+- **Command History**: Navigate previous commands with UP/DOWN arrows
+- **Cursor Control**: Move within lines using LEFT/RIGHT arrows
+- **In-line Editing**: Insert/delete characters at any position
+- **Syntax Checking**: Real-time validation before execution
+- **File Operations**: Save and load programs seamlessly
+
+### Usage Example
+```
+BASIC> 10 PRINT "Hello World"    (adds to program)
+Line added to program
+
+BASIC> PRINT "Immediate"         (executes now)
+Immediate
+
+BASIC> list                      (show program)
+10 PRINT "Hello World"
+
+BASIC> run                       (execute program)
+Hello World
+```
+
+### Editor Controls
+| Key | Action |
+|-----|--------|
+| ↑/↓ | Navigate command history |
+| ←/→ | Move cursor within line |
+| BACKSPACE | Delete character before cursor |
+| DELETE | Delete character at cursor |
+| ENTER | Execute/store command |
+
+See `CROSSPLATFORM_README.md` for detailed cross-platform information.
+
 ## 📁 Example Programs
 
 CrossBasic comes with an extensive collection of example programs:

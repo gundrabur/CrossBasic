@@ -806,13 +806,33 @@ class BasicInterpreter:
         print(f"Runtime Error at line {self.current_line}: {message}")
         self.running = False
     
+    def clear_program(self):
+        """Clears the loaded program"""
+        self.program = {}
+        self.variables = {}
+        self.call_stack = []
+        self.for_stack = []
+        self.while_stack = []
+    
     def load_program(self, program_text: str):
         """Lädt ein BASIC-Programm"""
         try:
             lexer = BasicLexer(program_text)
             tokens = lexer.tokenize()
             parser = BasicParser(tokens)
-            self.program = parser.parse_program()
+            new_program = parser.parse_program()
+            
+            # Merge with existing program instead of replacing
+            for key, value in new_program.items():
+                if key == '__lines__':
+                    # Merge line information
+                    if '__lines__' not in self.program:
+                        self.program['__lines__'] = []
+                    self.program['__lines__'].extend(value)
+                elif isinstance(key, int):
+                    # Add or update numbered line
+                    self.program[key] = value
+            
             return True
         except Exception as e:
             print(f"Error loading program: {e}")
@@ -1032,6 +1052,11 @@ class BasicInterpreter:
         """Führt PRINT-Statement aus"""
         items = statement[1]
         separators = statement[2] if len(statement) > 2 else []
+        
+        if not items:
+            # Empty PRINT statement just prints a newline
+            print()
+            return
         
         output_parts = []
         for i, item in enumerate(items):
@@ -1414,64 +1439,477 @@ class BasicInterpreter:
             # Primitiver Wert
             return str(expr)
 
+class BasicEditor:
+    """Interactive BASIC line editor with syntax checking and line history"""
+    
+    def __init__(self, interpreter: BasicInterpreter):
+        self.interpreter = interpreter
+        self.history = []
+        self.history_index = -1
+        self.current_line = ""
+        self.cursor_pos = 0
+        
+        # Check if we have the required modules for advanced terminal control
+        try:
+            import msvcrt
+            self.has_msvcrt = True
+        except ImportError:
+            self.has_msvcrt = False
+            
+        try:
+            import termios
+            import tty
+            self.has_termios = True
+        except ImportError:
+            self.has_termios = False
+        
+        try:
+            import readline
+            self.has_readline = True
+            # Configure readline for better experience
+            readline.set_history_length(100)
+            # Set up completion (optional)
+            readline.parse_and_bind("tab: complete")
+        except ImportError:
+            self.has_readline = False
+    
+    def check_syntax(self, line: str) -> tuple[bool, str]:
+        """
+        Performs basic syntax checking on a BASIC line
+        Returns (is_valid, error_message)
+        """
+        if not line.strip():
+            return True, ""
+        
+        try:
+            # Try to parse the line
+            lexer = BasicLexer(line)
+            tokens = lexer.tokenize()
+            parser = BasicParser(tokens)
+            
+            # Parse as a single line
+            test_program = parser.parse_program()
+            return True, ""
+            
+        except Exception as e:
+            return False, str(e)
+    
+    def has_line_number(self, line: str) -> bool:
+        """Check if line starts with a line number"""
+        line = line.strip()
+        if not line:
+            return False
+        
+        # Check if first token is a number
+        try:
+            lexer = BasicLexer(line)
+            tokens = lexer.tokenize()
+            if tokens and tokens[0].type == TokenType.NUMBER:
+                # Check if it's an integer (line numbers should be integers)
+                first_token = tokens[0].value
+                return '.' not in first_token
+        except:
+            pass
+        
+        return False
+    
+    def add_to_history(self, line: str):
+        """Add a line to the command history"""
+        if line.strip() and (not self.history or self.history[-1] != line):
+            self.history.append(line)
+            # Keep history limited to last 100 commands
+            if len(self.history) > 100:
+                self.history.pop(0)
+            
+            # Also add to readline history if available
+            if self.has_readline:
+                import readline
+                readline.add_history(line)
+        
+        self.history_index = len(self.history)
+    
+    def get_from_history(self, direction: int) -> str:
+        """Get a line from history. direction: -1 for up, 1 for down"""
+        if not self.history:
+            return ""
+        
+        if direction == -1:  # Up arrow
+            if self.history_index > 0:
+                self.history_index -= 1
+                return self.history[self.history_index]
+        elif direction == 1:  # Down arrow
+            if self.history_index < len(self.history) - 1:
+                self.history_index += 1
+                return self.history[self.history_index]
+            else:
+                self.history_index = len(self.history)
+                return ""
+        
+        return self.current_line
+    
+    def simple_input(self) -> str:
+        """Simple input fallback when advanced terminal control is not available"""
+        return input("BASIC> ")
+    
+    def readline_input(self) -> str:
+        """Input using readline for Unix-like systems with history support"""
+        if not self.has_readline:
+            return self.simple_input()
+        
+        import readline
+        
+        # Add current history to readline
+        readline.clear_history()
+        for cmd in self.history:
+            readline.add_history(cmd)
+        
+        try:
+            line = input("BASIC> ")
+            return line
+        except (EOFError, KeyboardInterrupt):
+            return ""
+    
+    def unix_advanced_input(self) -> str:
+        """Advanced input for Unix-like systems using termios"""
+        if not self.has_termios:
+            return self.readline_input()
+        
+        import termios
+        import tty
+        import sys
+        
+        # Save original terminal settings
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        
+        try:
+            tty.setraw(sys.stdin.fileno())
+            
+            line = ""
+            cursor_pos = 0
+            print("BASIC> ", end="", flush=True)
+            
+            while True:
+                char = sys.stdin.read(1)
+                
+                if char == '\r' or char == '\n':  # Enter
+                    print()
+                    return line
+                elif char == '\x7f' or char == '\x08':  # Backspace/Delete
+                    if cursor_pos > 0:
+                        line = line[:cursor_pos-1] + line[cursor_pos:]
+                        cursor_pos -= 1
+                        # Redraw line
+                        print(f"\r\x1b[KBASIC> {line}", end="")
+                        # Position cursor
+                        if cursor_pos < len(line):
+                            print(f"\x1b[{len(line) - cursor_pos}D", end="", flush=True)
+                elif char == '\x1b':  # ESC sequence
+                    # Read the rest of the escape sequence
+                    next_char = sys.stdin.read(1)
+                    if next_char == '[':
+                        arrow_char = sys.stdin.read(1)
+                        if arrow_char == 'A':  # Up arrow
+                            hist_line = self.get_from_history(-1)
+                            line = hist_line
+                            cursor_pos = len(line)
+                            print(f"\r\x1b[KBASIC> {line}", end="", flush=True)
+                        elif arrow_char == 'B':  # Down arrow
+                            hist_line = self.get_from_history(1)
+                            line = hist_line
+                            cursor_pos = len(line)
+                            print(f"\r\x1b[KBASIC> {line}", end="", flush=True)
+                        elif arrow_char == 'D':  # Left arrow
+                            if cursor_pos > 0:
+                                cursor_pos -= 1
+                                print('\x1b[1D', end="", flush=True)
+                        elif arrow_char == 'C':  # Right arrow
+                            if cursor_pos < len(line):
+                                cursor_pos += 1
+                                print('\x1b[1C', end="", flush=True)
+                        elif arrow_char == '3':  # Delete key
+                            # Read the '~' that follows
+                            sys.stdin.read(1)
+                            if cursor_pos < len(line):
+                                line = line[:cursor_pos] + line[cursor_pos+1:]
+                                # Redraw line
+                                print(f"\r\x1b[KBASIC> {line}", end="")
+                                # Position cursor
+                                if cursor_pos < len(line):
+                                    print(f"\x1b[{len(line) - cursor_pos}D", end="", flush=True)
+                elif char == '\x03':  # Ctrl+C
+                    print()
+                    raise KeyboardInterrupt
+                elif char == '\x04':  # Ctrl+D (EOF)
+                    print()
+                    raise EOFError
+                elif ord(char) >= 32:  # Printable character
+                    line = line[:cursor_pos] + char + line[cursor_pos:]
+                    cursor_pos += 1
+                    # Redraw line
+                    print(f"\r\x1b[KBASIC> {line}", end="")
+                    # Position cursor
+                    if cursor_pos < len(line):
+                        print(f"\x1b[{len(line) - cursor_pos}D", end="", flush=True)
+                    else:
+                        print("", end="", flush=True)
+        
+        finally:
+            # Restore original terminal settings
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    
+    def advanced_input(self) -> str:
+        """Advanced input with cursor control (Windows)"""
+        if not self.has_msvcrt:
+            return self.simple_input()
+        
+        import msvcrt
+        
+        line = ""
+        cursor_pos = 0
+        print("BASIC> ", end="", flush=True)
+        
+        while True:
+            char = msvcrt.getch()
+            
+            if char == b'\r':  # Enter
+                print()
+                return line
+            elif char == b'\x08':  # Backspace
+                if cursor_pos > 0:
+                    line = line[:cursor_pos-1] + line[cursor_pos:]
+                    cursor_pos -= 1
+                    # Redraw line
+                    print(f"\rBASIC> {line}{' ' * 10}", end="")
+                    print(f"\rBASIC> {line}", end="")
+                    # Position cursor
+                    if cursor_pos < len(line):
+                        print(f"\x1b[{len(line) - cursor_pos}D", end="", flush=True)
+            elif char == b'\xe0':  # Extended key
+                char2 = msvcrt.getch()
+                if char2 == b'H':  # Up arrow
+                    hist_line = self.get_from_history(-1)
+                    line = hist_line
+                    cursor_pos = len(line)
+                    print(f"\rBASIC> {line}{' ' * 20}", end="")
+                    print(f"\rBASIC> {line}", end="", flush=True)
+                elif char2 == b'P':  # Down arrow
+                    hist_line = self.get_from_history(1)
+                    line = hist_line
+                    cursor_pos = len(line)
+                    print(f"\rBASIC> {line}{' ' * 20}", end="")
+                    print(f"\rBASIC> {line}", end="", flush=True)
+                elif char2 == b'K':  # Left arrow
+                    if cursor_pos > 0:
+                        cursor_pos -= 1
+                        print('\x1b[1D', end="", flush=True)
+                elif char2 == b'M':  # Right arrow
+                    if cursor_pos < len(line):
+                        cursor_pos += 1
+                        print('\x1b[1C', end="", flush=True)
+                elif char2 == b'S':  # Delete
+                    if cursor_pos < len(line):
+                        line = line[:cursor_pos] + line[cursor_pos+1:]
+                        # Redraw line
+                        print(f"\rBASIC> {line}{' ' * 10}", end="")
+                        print(f"\rBASIC> {line}", end="")
+                        # Position cursor
+                        if cursor_pos < len(line):
+                            print(f"\x1b[{len(line) - cursor_pos}D", end="", flush=True)
+            elif char == b'\x1b':  # ESC - ignore
+                continue
+            elif ord(char) >= 32:  # Printable character
+                char_str = char.decode('utf-8', errors='ignore')
+                line = line[:cursor_pos] + char_str + line[cursor_pos:]
+                cursor_pos += 1
+                # Redraw line
+                print(f"\rBASIC> {line}", end="")
+                # Position cursor
+                if cursor_pos < len(line):
+                    print(f"\x1b[{len(line) - cursor_pos}D", end="", flush=True)
+                else:
+                    print("", end="", flush=True)
+    
+    def edit_line(self) -> str:
+        """Edit a line with platform-appropriate terminal support"""
+        try:
+            if self.has_msvcrt and os.name == 'nt':
+                # Windows: Use msvcrt for full cursor control
+                return self.advanced_input()
+            elif self.has_termios and os.name != 'nt':
+                # Unix-like systems: Use termios for full cursor control
+                return self.unix_advanced_input()
+            elif self.has_readline and os.name != 'nt':
+                # Unix-like systems: Use readline for basic history support
+                return self.readline_input()
+            else:
+                # Fallback: Basic input
+                return self.simple_input()
+        except (KeyboardInterrupt, EOFError):
+            return ""
+    
+    def run_editor(self):
+        """Main editor loop"""
+        print("CrossBasic Line Editor v1.0")
+        print("Enter BASIC commands. Lines starting with numbers are added to the program.")
+        print("Commands without line numbers are executed immediately.")
+        print("Type 'help' for help, 'list' to show program, 'run' to execute, 'quit' to exit.")
+        
+        # Display platform-specific features
+        if self.has_msvcrt and os.name == 'nt':
+            print("Advanced editing: Use arrow keys for cursor/history, BACKSPACE/DELETE for editing.")
+        elif self.has_termios and os.name != 'nt':
+            print("Advanced editing: Use arrow keys for cursor/history, BACKSPACE/DELETE for editing.")
+        elif self.has_readline and os.name != 'nt':
+            print("History support: Use UP/DOWN arrow keys for command history.")
+        else:
+            print("Basic editing mode: Enter commands line by line.")
+        
+        print()
+        
+        while True:
+            try:
+                line = self.edit_line().strip()
+                
+                if not line:
+                    continue
+                
+                # Add to history
+                self.add_to_history(line)
+                
+                # Handle special commands
+                if line.lower() in ['quit', 'exit', 'bye']:
+                    break
+                elif line.lower() == 'help':
+                    print_help()
+                    continue
+                elif line.lower() == 'new':
+                    self.interpreter.clear_program()
+                    print("Program cleared")
+                    continue
+                elif line.lower() == 'list':
+                    self.interpreter.list_program()
+                    continue
+                elif line.lower() == 'run':
+                    self.interpreter.run()
+                    continue
+                elif line.lower().startswith('load '):
+                    filename = line[5:].strip()
+                    try:
+                        with open(filename, 'r') as f:
+                            program_text = f.read()
+                        
+                        # Clear existing program first
+                        self.interpreter.clear_program()
+                        
+                        if self.interpreter.load_program(program_text):
+                            print(f"Program loaded from {filename}")
+                        else:
+                            print(f"Error loading {filename}")
+                    except FileNotFoundError:
+                        print(f"File {filename} not found")
+                    except Exception as e:
+                        print(f"Error loading file: {e}")
+                    continue
+                elif line.lower().startswith('save '):
+                    filename = line[5:].strip()
+                    self.save_program(filename)
+                    continue
+                
+                # Check syntax first
+                is_valid, error_msg = self.check_syntax(line)
+                if not is_valid:
+                    print(f"Syntax Error: {error_msg}")
+                    continue
+                
+                # Check if it has a line number
+                if self.has_line_number(line):
+                    # Add to program
+                    if self.interpreter.load_program(line):
+                        print("Line added to program")
+                    else:
+                        print("Error adding line to program")
+                else:
+                    # Execute immediately
+                    temp_interpreter = BasicInterpreter()
+                    temp_interpreter.variables = self.interpreter.variables.copy()
+                    temp_interpreter.graphics = self.interpreter.graphics
+                    
+                    if temp_interpreter.load_program(line):
+                        temp_interpreter.run()
+                        # Copy variables back
+                        self.interpreter.variables.update(temp_interpreter.variables)
+                    else:
+                        print("Error executing command")
+            
+            except KeyboardInterrupt:
+                print("\nUse 'quit' to exit")
+            except Exception as e:
+                print(f"Error: {e}")
+        
+        # Close graphics window
+        self.interpreter.graphics.close()
+        print("Goodbye!")
+    
+    def save_program(self, filename: str):
+        """Save the current program to a file"""
+        try:
+            with open(filename, 'w') as f:
+                if '__lines__' in self.interpreter.program:
+                    # Use the original order from the file
+                    for line_info in self.interpreter.program['__lines__']:
+                        statement = line_info['statement']
+                        line_number = line_info['line_number']
+                        had_line_number = line_info['had_line_number']
+                        
+                        if had_line_number and line_number is not None:
+                            # Show with line number if it originally had one
+                            f.write(f"{line_number} {self.interpreter.format_statement(statement)}\n")
+                        else:
+                            # Show without line number if it originally didn't have one
+                            f.write(f"{self.interpreter.format_statement(statement)}\n")
+                else:
+                    # Fallback to old method if __lines__ is not available
+                    for line_num in sorted([k for k in self.interpreter.program.keys() if k != '__lines__']):
+                        statement, had_line_number = self.interpreter.program[line_num][:2]
+                        if had_line_number and line_num > 0:
+                            f.write(f"{line_num} {self.interpreter.format_statement(statement)}\n")
+                        else:
+                            f.write(f"{self.interpreter.format_statement(statement)}\n")
+            
+            print(f"Program saved to {filename}")
+        except Exception as e:
+            print(f"Error saving file: {e}")
+
 def main():
     """Main function of the CrossBasic interpreter"""
-    print("CrossBasic Interpreter v1.0")
-    print("Cross-platform BASIC interpreter with graphics support")
-    print("Type 'help' for help or 'quit' to exit")
-    print()
-    
     interpreter = BasicInterpreter()
-    
-    while True:
-        try:
-            command = input("CrossBasic> ").strip()
-            
-            if command.lower() in ['quit', 'exit', 'bye']:
-                break
-            elif command.lower() == 'help':
-                print_help()
-            elif command.lower() == 'new':
-                interpreter = BasicInterpreter()
-                print("Program cleared")
-            elif command.lower() == 'list':
-                interpreter.list_program()
-            elif command.lower() == 'run':
-                interpreter.run()
-            elif command.lower().startswith('load '):
-                filename = command[5:].strip()
-                try:
-                    with open(filename, 'r') as f:
-                        program_text = f.read()
-                    if interpreter.load_program(program_text):
-                        print(f"Program loaded from {filename}")
-                    else:
-                        print(f"Error loading {filename}")
-                except FileNotFoundError:
-                    print(f"File {filename} not found")
-                except Exception as e:
-                    print(f"Error loading file: {e}")
-            elif command.lower().startswith('save '):
-                filename = command[5:].strip()
-                print(f"Save functionality not yet implemented for {filename}")
-            else:
-                # Execute direct BASIC code
-                if interpreter.load_program(command):
-                    interpreter.run()
-        
-        except KeyboardInterrupt:
-            print("\nUse 'quit' to exit")
-        except Exception as e:
-            print(f"Error: {e}")
-    
-    # Close graphics window
-    interpreter.graphics.close()
-    print("Goodbye!")
+    editor = BasicEditor(interpreter)
+    editor.run_editor()
 
 def print_help():
     """Shows help"""
     help_text = """
-CrossBasic Interpreter - Commands:
+CrossBasic Line Editor - Commands:
+
+Editor Features:
+    - Enter BASIC commands directly
+    - Lines starting with numbers are added to the program
+    - Lines without numbers are executed immediately
+    - Cross-platform cursor and history support
+    - Automatic syntax checking before execution
+
+Platform-Specific Features:
+    Windows: Full cursor control with arrow keys and advanced editing
+    Linux/macOS: Full cursor control or readline-based history support
+    Fallback: Basic line-by-line input for all platforms
+
+Editor Controls:
+    UP/DOWN arrows    - Navigate command history
+    LEFT/RIGHT arrows - Move cursor within line (advanced mode)
+    BACKSPACE        - Delete character before cursor
+    DELETE           - Delete character at cursor (advanced mode)
+    ENTER            - Execute/store command
 
 Interpreter Commands:
     help          - Shows this help
@@ -1479,7 +1917,7 @@ Interpreter Commands:
     list          - Shows the loaded program
     run           - Runs the program
     load <file>   - Loads a program from a file
-    save <file>   - Saves the program (not yet implemented)
+    save <file>   - Saves the program to a file
     quit/exit     - Exits the interpreter
 
 BASIC Commands:
@@ -1511,6 +1949,12 @@ Built-in Functions:
     RND([x]), LEN(s), CHR(s), ASC(s)
     TIME() - Returns current time in seconds (for benchmarking)
 
+Example Usage:
+    10 PRINT "Hello World"    (adds line 10 to program)
+    PRINT "Hello Now"         (executes immediately)
+    list                      (shows program)
+    run                       (runs the program)
+
 Example Program:
     10 GRAPHICS
     20 FOR I = 0 TO 360 STEP 10
@@ -1530,4 +1974,60 @@ if __name__ == "__main__":
         print("Pygame is not installed. Install it with: pip install pygame")
         sys.exit(1)
     
-    main()
+    # Check if we should run the old-style interpreter instead
+    if len(sys.argv) > 1 and sys.argv[1] == "--classic":
+        # Run the classic interpreter
+        print("CrossBasic Interpreter v1.0 (Classic Mode)")
+        print("Cross-platform BASIC interpreter with graphics support")
+        print("Type 'help' for help or 'quit' to exit")
+        print()
+        
+        interpreter = BasicInterpreter()
+        
+        while True:
+            try:
+                command = input("CrossBasic> ").strip()
+                
+                if command.lower() in ['quit', 'exit', 'bye']:
+                    break
+                elif command.lower() == 'help':
+                    print_help()
+                elif command.lower() == 'new':
+                    interpreter = BasicInterpreter()
+                    print("Program cleared")
+                elif command.lower() == 'list':
+                    interpreter.list_program()
+                elif command.lower() == 'run':
+                    interpreter.run()
+                elif command.lower().startswith('load '):
+                    filename = command[5:].strip()
+                    try:
+                        with open(filename, 'r') as f:
+                            program_text = f.read()
+                        if interpreter.load_program(program_text):
+                            print(f"Program loaded from {filename}")
+                        else:
+                            print(f"Error loading {filename}")
+                    except FileNotFoundError:
+                        print(f"File {filename} not found")
+                    except Exception as e:
+                        print(f"Error loading file: {e}")
+                elif command.lower().startswith('save '):
+                    filename = command[5:].strip()
+                    print(f"Save functionality not yet implemented for {filename}")
+                else:
+                    # Execute direct BASIC code
+                    if interpreter.load_program(command):
+                        interpreter.run()
+            
+            except KeyboardInterrupt:
+                print("\nUse 'quit' to exit")
+            except Exception as e:
+                print(f"Error: {e}")
+        
+        # Close graphics window
+        interpreter.graphics.close()
+        print("Goodbye!")
+    else:
+        # Run the new line editor
+        main()
