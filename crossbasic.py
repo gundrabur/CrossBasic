@@ -1453,7 +1453,7 @@ class BasicInterpreter:
             
             # Display numbered lines first, then unnumbered lines
             for line_number, statement in lines_with_numbers:
-                print(f"{line_number} {self.format_statement(statement)}")
+                print(f"{line_number:>5} {self.format_statement(statement)}")
             
             for statement in lines_without_numbers:
                 print(self.format_statement(statement))
@@ -1462,7 +1462,7 @@ class BasicInterpreter:
             for line_num in sorted([k for k in self.program.keys() if k != '__lines__']):
                 statement, had_line_number = self.program[line_num][:2]
                 if had_line_number and line_num > 0:
-                    print(f"{line_num} {self.format_statement(statement)}")
+                    print(f"{line_num:>5} {self.format_statement(statement)}")
                 else:
                     print(self.format_statement(statement))
     
@@ -1763,7 +1763,8 @@ class BasicEditor:
                 char = sys.stdin.read(1)
                 
                 if char == '\r' or char == '\n':  # Enter
-                    print()
+                    print('\r', end='', flush=True)  # Return to beginning of line
+                    print()  # Move to next line
                     return line
                 elif char == '\x7f' or char == '\x08':  # Backspace/Delete
                     if cursor_pos > 0:
@@ -2094,6 +2095,8 @@ class BasicEditor:
                 line = self.edit_line().strip()
                 
                 if not line:
+                    # Ensure cursor is at beginning of next line for empty input
+                    print('\r', end='', flush=True)
                     continue
                 
                 # Add to history
@@ -2160,13 +2163,13 @@ class BasicEditor:
                                 if is_valid:
                                     self.interpreter.clear_operation_results()
                                     if self.interpreter.update_line(line_num, edited_content):
-                                        print(f"Line {line_num} updated")
+                                        print(f"\rLine {line_num} updated")
                                     else:
-                                        print("Error updating line")
+                                        print("\rError updating line")
                                 else:
-                                    print(f"Syntax Error: {error_msg}")
+                                    print(f"\rSyntax Error: {error_msg}")
                             elif edited_content and edited_content.strip() == current_content.strip():
-                                print("No changes made")
+                                print("\rNo changes made")
                             else:
                                 print("Edit cancelled")
                         else:
@@ -2187,9 +2190,9 @@ class BasicEditor:
                     
                     # Delete the line
                     if self.interpreter.delete_line(line_num):
-                        print(f"Line {line_num} deleted")
+                        print(f"\rLine {line_num} deleted")
                     else:
-                        print(f"Line {line_num} not found")
+                        print(f"\rLine {line_num} not found")
                     continue
                 
                 # Check syntax first
@@ -2214,17 +2217,17 @@ class BasicEditor:
                                 operation = self.interpreter.get_last_line_operation(line_number)
                                 
                                 if operation == 'overwritten':
-                                    print(f"Line {line_number} overwritten")
+                                    print(f"\rLine {line_number} overwritten")
                                 elif operation == 'added':
-                                    print(f"Line {line_number} added to program")
+                                    print(f"\rLine {line_number} added to program")
                                 else:
-                                    print("Line added to program")
+                                    print("\rLine added to program")
                             else:
-                                print("Line added to program")
+                                print("\rLine added to program")
                         except:
-                            print("Line added to program")
+                            print("\rLine added to program")
                     else:
-                        print("Error adding line to program")
+                        print("\rError adding line to program")
                 else:
                     # Execute immediately
                     temp_interpreter = BasicInterpreter()
@@ -2236,7 +2239,7 @@ class BasicEditor:
                         # Copy variables back
                         self.interpreter.variables.update(temp_interpreter.variables)
                     else:
-                        print("Error executing command")
+                        print("\rError executing command")
             
             except KeyboardInterrupt:
                 print("\nUse 'quit' to exit")
