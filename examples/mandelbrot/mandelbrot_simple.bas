@@ -1,4 +1,4 @@
-REM Mandelbrot-Simple - Functional version without GOTO problems
+1 REM Mandelbrot-Simple - Functional version without GOTO problems
 
 10 PRINT "Mandelbrot Set (Simple)"
 20 PRINT "======================"
@@ -6,7 +6,7 @@ REM Mandelbrot-Simple - Functional version without GOTO problems
 30 GRAPHICS
 40 CLS
 
-REM Small resolution for fast calculation
+45 REM Small resolution for fast calculation
 50 LET WIDTH = 100
 60 LET HEIGHT = 80
 70 LET MAX_ITER = 30
@@ -28,7 +28,7 @@ REM Small resolution for fast calculation
 180 FOR X = 0 TO WIDTH - 1
 190 LET CX = XMIN + X * XSTEP
 
-REM Mandelbrot calculation without GOTO
+195 REM Mandelbrot calculation without GOTO
 200 LET ZX = 0
 210 LET ZY = 0
 220 LET COLOR_VAL = 0
@@ -45,13 +45,13 @@ REM Mandelbrot calculation without GOTO
 300 LET ZY = ZY_NEW
 310 NEXT ITER
 
-REM Set color and draw
+315 REM Set color and draw
 320 COLOR COLOR_VAL
 330 PSET X, Y
 
 340 NEXT X
 
-REM Progress every 10 lines
+345 REM Progress every 10 lines
 350 IF Y / 10 * 10 = Y THEN PRINT "Line"; Y; "of"; HEIGHT
 
 360 NEXT Y

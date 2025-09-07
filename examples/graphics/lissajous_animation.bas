@@ -1,6 +1,6 @@
-REM Real-time Lissajous Animation - Dynamic Parameter Changes
-REM This program shows how Lissajous curves change as parameters vary
-REM Creates a mesmerizing animation effect
+1 REM Real-time Lissajous Animation - Dynamic Parameter Changes
+2 REM This program shows how Lissajous curves change as parameters vary
+3 REM Creates a mesmerizing animation effect
 
 10 GRAPHICS
 20 CLS
@@ -11,7 +11,7 @@ REM Creates a mesmerizing animation effect
 60 PRINT "Watch how curves change with varying parameters!"
 70 PRINT ""
 
-REM Animation parameters
+75 REM Animation parameters
 80 LET CENTER_X = 400
 90 LET CENTER_Y = 300
 100 LET BASE_SCALE = 100
@@ -20,33 +20,33 @@ REM Animation parameters
 120 PRINT "Starting animation..."
 130 PRINT "Parameters will change continuously..."
 
-REM Main animation loop
+135 REM Main animation loop
 140 FOR CYCLE = 1 TO 5
 
 150 PRINT "Animation cycle"; CYCLE; "of 5"
 
-REM Slowly changing frequency ratios
+155 REM Slowly changing frequency ratios
 160 FOR FREQ_MULT = 10 TO 50 STEP 2
 
-170 REM Calculate current frequencies
+165 REM Calculate current frequencies
 180 LET FREQ_A = FREQ_MULT / 10
 190 LET FREQ_B = 30 / 10
 
-REM Calculate current scale (pulsing effect)
+195 REM Calculate current scale (pulsing effect)
 200 LET CURRENT_SCALE = BASE_SCALE * (1 + 0.3 * SIN(FREQ_MULT / 5))
 
-REM Calculate phase shift
+205 REM Calculate phase shift
 210 LET PHASE = FREQ_MULT * 15.7 / 100
 
-REM Choose color based on cycle
+215 REM Choose color based on cycle
 220 LET CURRENT_COLOR = CYCLE + 1
 230 IF CURRENT_COLOR > 9 THEN LET CURRENT_COLOR = 2
 240 COLOR CURRENT_COLOR
 
-REM Clear previous curve periodically
+245 REM Clear previous curve periodically
 250 IF FREQ_MULT / 6 * 6 = FREQ_MULT THEN CLS
 
-REM Draw the current Lissajous curve
+255 REM Draw the current Lissajous curve
 260 FOR T = 0 TO 628 STEP STEPS
 270 LET X = CENTER_X + CURRENT_SCALE * SIN(FREQ_A * T / 100 + PHASE)
 280 LET Y = CENTER_Y + CURRENT_SCALE * SIN(FREQ_B * T / 100)
@@ -56,18 +56,18 @@ REM Draw the current Lissajous curve
 310 NEXT FREQ_MULT
 320 NEXT CYCLE
 
-REM Final spectacular multi-curve display
+325 REM Final spectacular multi-curve display
 330 CLS
 340 COLOR 1
 350 PRINT "Grand finale - Multiple curves simultaneously!"
 
-REM Draw several curves with different parameters at once
+355 REM Draw several curves with different parameters at once
 360 LET CURVES = 5
 
 370 FOR CURVE_NUM = 1 TO CURVES
 380 COLOR CURVE_NUM + 1
 
-REM Each curve has different parameters
+385 REM Each curve has different parameters
 390 LET A_FREQ = CURVE_NUM
 400 LET B_FREQ = CURVES + 1 - CURVE_NUM
 410 LET SCALE = BASE_SCALE * (0.5 + 0.1 * CURVE_NUM)
@@ -80,11 +80,11 @@ REM Each curve has different parameters
 470 NEXT T
 480 NEXT CURVE_NUM
 
-REM Add central reference point
+485 REM Add central reference point
 490 COLOR 9
 500 CIRCLE CENTER_X, CENTER_Y, 5
 
-REM Create a decorative border effect
+505 REM Create a decorative border effect
 510 FOR BORDER = 1 TO 3
 520 COLOR BORDER + 6
 530 CIRCLE CENTER_X, CENTER_Y, BASE_SCALE + BORDER * 20

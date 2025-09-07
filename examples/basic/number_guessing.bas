@@ -1,4 +1,4 @@
-REM Example 4: Interactive program
+1 REM Example 4: Interactive program
 10 PRINT "Number Guessing Game"
 20 PRINT "==================="
 30 LET NUMBER = INT(RND(100)) + 1

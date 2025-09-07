@@ -1,11 +1,11 @@
-REM Mandelbrot Benchmark - Test graphics performance with TIME function
-REM This version measures how long the Mandelbrot calculation takes
+1 REM Mandelbrot Benchmark - Test graphics performance with TIME function
+2 REM This version measures how long the Mandelbrot calculation takes
 
 10 PRINT "Mandelbrot Set Benchmark"
 20 PRINT "======================="
 30 PRINT
 
-REM Parameters for benchmark
+35 REM Parameters for benchmark
 40 LET WIDTH = 160
 50 LET HEIGHT = 120
 60 LET MAX_ITER = 50
@@ -23,7 +23,7 @@ REM Parameters for benchmark
 150 PRINT "Starting benchmark..."
 160 PRINT
 
-REM Start timing
+165 REM Start timing
 170 LET START_TIME = TIME()
 
 180 GRAPHICS
@@ -35,7 +35,7 @@ REM Start timing
 220 FOR X = 0 TO WIDTH - 1
 230 LET CX = XMIN + X * XSTEP
 
-REM Mandelbrot calculation
+235 REM Mandelbrot calculation
 240 LET ZX = 0
 250 LET ZY = 0
 260 LET COLOR_VAL = 0
@@ -50,14 +50,14 @@ REM Mandelbrot calculation
 340 LET ZY = ZY_NEW
 350 NEXT ITER
 
-REM Draw pixel
+355 REM Draw pixel
 360 COLOR COLOR_VAL
 370 PSET X, Y
 
 380 NEXT X
 390 NEXT Y
 
-REM End timing
+395 REM End timing
 400 LET END_TIME = TIME()
 410 LET TOTAL_TIME = END_TIME - START_TIME
 

@@ -1,16 +1,16 @@
-REM TIME Function Examples
-REM Shows different ways to use TIME() for benchmarking
+1 REM TIME Function Examples
+2 REM Shows different ways to use TIME() for benchmarking
 
 10 PRINT "TIME Function Examples"
 20 PRINT "====================="
 30 PRINT
 
-REM Example 1: Basic timing
+35 REM Example 1: Basic timing
 40 PRINT "Example 1: Basic timing"
 50 PRINT "Current timestamp:"; TIME()
 60 PRINT
 
-REM Example 2: Measuring execution time
+65 REM Example 2: Measuring execution time
 70 PRINT "Example 2: Measuring execution time"
 80 LET START = TIME()
 90 FOR I = 1 TO 5000
@@ -20,18 +20,18 @@ REM Example 2: Measuring execution time
 130 PRINT "Calculated 5000 square roots in"; FINISH - START; "seconds"
 140 PRINT
 
-REM Example 3: Performance comparison
+145 REM Example 3: Performance comparison
 150 PRINT "Example 3: Performance comparison"
 160 PRINT "Testing addition vs multiplication:"
 
-170 REM Test addition
+165 REM Test addition
 180 LET START = TIME()
 190 FOR I = 1 TO 10000
 200 LET X = I + I + I + I + I
 210 NEXT I
 220 LET ADD_TIME = TIME() - START
 
-230 REM Test multiplication  
+225 REM Test multiplication  
 240 LET START = TIME()
 250 FOR I = 1 TO 10000
 260 LET X = I * 5
