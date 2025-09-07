@@ -47,7 +47,7 @@ REM Mandelbrot calculation without GOTO
 
 REM Set color and draw
 320 COLOR COLOR_VAL
-330 PSET X + 300, Y + 200
+330 PSET X, Y
 
 340 NEXT X
 

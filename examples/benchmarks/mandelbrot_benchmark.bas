@@ -52,7 +52,7 @@ REM Mandelbrot calculation
 
 REM Draw pixel
 360 COLOR COLOR_VAL
-370 PSET X + 300, Y + 225
+370 PSET X, Y
 
 380 NEXT X
 390 NEXT Y

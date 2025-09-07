@@ -1,20 +1,20 @@
-REM Mandelbrot Set - High Definition Version (Corrected)
-REM Functional version without GOTO problems
+5 REM Mandelbrot Set - High Definition Version (Corrected)
+8REM Functional version without GOTO problems
 
 10 PRINT "Mandelbrot Set - High Definition Version"
 20 PRINT "======================================="
 
-REM Initialization
+28 REM Initialization
 30 GRAPHICS
 40 CLS
 50 COLOR 1
 
-REM Parameters for good quality
+58 REM Parameters for good quality
 60 LET WIDTH = 320
 70 LET HEIGHT = 240
-80 LET MAX_ITER = 50
+80 LET MAX_ITER = 25
 
-REM Classic Mandelbrot range
+88 REM Classic Mandelbrot range
 90 LET XMIN = -2.0
 100 LET XMAX = 1.0
 110 LET YMIN = -1.0
@@ -30,14 +30,14 @@ REM Classic Mandelbrot range
 190 PRINT "       y["; YMIN; "to"; YMAX; "]"
 200 PRINT
 
-REM Main calculation
+208 REM Main calculation
 210 FOR PIXELY = 0 TO HEIGHT - 1
 220 LET CY = YMIN + PIXELY * YSTEP
 
 230 FOR PIXELX = 0 TO WIDTH - 1
 240 LET CX = XMIN + PIXELX * XSTEP
 
-REM Mandelbrot calculation
+248 REM Mandelbrot calculation
 250 LET ZX = 0
 260 LET ZY = 0
 270 LET COLOR_VAL = 0
@@ -47,7 +47,7 @@ REM Mandelbrot calculation
 300 LET ZX_NEW = ZX * ZX - ZY * ZY + CX
 310 LET ZY_NEW = 2 * ZX * ZY + CY
 
-REM Escape velocity test
+318 REM Escape velocity test
 320 LET DISTANCE = ZX_NEW * ZX_NEW + ZY_NEW * ZY_NEW
 330 IF DISTANCE > 4 AND DIVERGED = 0 THEN LET DIVERGED = I
 340 IF DISTANCE > 4 THEN LET I = MAX_ITER
@@ -56,7 +56,7 @@ REM Escape velocity test
 360 LET ZY = ZY_NEW
 370 NEXT I
 
-REM Color determination based on divergence
+378 REM Color determination based on divergence
 380 IF DIVERGED = 0 THEN COLOR_VAL = 0
 390 IF DIVERGED > 0 AND DIVERGED < 5 THEN COLOR_VAL = 1
 400 IF DIVERGED >= 5 AND DIVERGED < 10 THEN COLOR_VAL = 2
@@ -64,14 +64,14 @@ REM Color determination based on divergence
 420 IF DIVERGED >= 20 AND DIVERGED < 30 THEN COLOR_VAL = 4
 430 IF DIVERGED >= 30 THEN COLOR_VAL = 5
 
-REM Draw pixel (centered)
+438 REM Draw pixel (centered)
 440 COLOR COLOR_VAL
-450 PSET PIXELX + 300, PIXELY + 225
+450 PSET PIXELX, PIXELY
 
 460 NEXT PIXELX
 
-REM Progress indicator every 10 lines
-REM 470 IF PIXELY / 10 * 10 = PIXELY THEN PRINT "Line"; PIXELY; "of"; HEIGHT; "("; INT(PIXELY * 100 / HEIGHT); "%)"
+465 REM Progress indicator every 10 lines
+466 REM 470 IF PIXELY / 10 * 10 = PIXELY THEN PRINT "Line"; PIXELY; "of"; HEIGHT; "("; INT(PIXELY * 100 / HEIGHT); "%)"
 
 480 NEXT PIXELY
 
