@@ -15,6 +15,23 @@ if not exist .venv\Scripts\pyinstaller.exe (
 
 REM Clean previous builds
 echo 🧹 Cleaning previous builds...
+
+REM Kill any running CrossBasic processes first
+taskkill /f /im crossbasic.exe >nul 2>&1
+
+REM Wait a moment for processes to close
+timeout /t 2 /nobreak >nul
+
+REM Try to remove old executable directly
+if exist dist\crossbasic.exe (
+    del /f dist\crossbasic.exe >nul 2>&1
+    if exist dist\crossbasic.exe (
+        echo ⚠️  Warning: Could not delete old executable, trying alternative approach...
+        REM Move it to a backup name that won't conflict
+        move dist\crossbasic.exe dist\crossbasic_old.exe >nul 2>&1
+    )
+)
+
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 if exist *.spec del *.spec
@@ -42,10 +59,8 @@ if %errorlevel% equ 0 (
     echo 📦 Executable created: dist\crossbasic.exe
     dir dist\crossbasic.exe
     echo.
-    echo 🧪 Testing executable...
-    cd dist
-    crossbasic.exe --help >nul 2>&1 || echo Ready to run!
-    cd ..
+    echo ✅ Build completed successfully!
+    echo 🚀 Ready to run: dist\crossbasic.exe
 ) else (
     echo ❌ Build failed!
     exit /b 1
