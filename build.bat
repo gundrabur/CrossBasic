@@ -3,11 +3,14 @@ REM Build script for CrossBasic using PyInstaller on Windows
 
 echo 🚀 Building CrossBasic for Windows...
 
-REM Check if PyInstaller is installed
-pyinstaller --version >nul 2>&1
-if errorlevel 1 (
-    echo ❌ PyInstaller not found. Installing...
-    pip install pyinstaller
+
+REM Activate .venv and use its Python and PyInstaller
+set VENV_PY=%.venv\Scripts\python.exe
+set VENV_PYINSTALLER=%.venv\Scripts\pyinstaller.exe
+
+if not exist .venv\Scripts\pyinstaller.exe (
+    echo ❌ PyInstaller not found in .venv. Installing...
+    .venv\Scripts\python.exe -m pip install pyinstaller
 )
 
 REM Clean previous builds
@@ -16,9 +19,10 @@ if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 if exist *.spec del *.spec
 
-REM Build executable with examples included
+
+REM Build executable with examples included using .venv PyInstaller
 echo 🔨 Building executable...
-pyinstaller ^
+.venv\Scripts\pyinstaller.exe ^
     --onefile ^
     --name=crossbasic ^
     --add-data="examples;examples" ^
