@@ -15,6 +15,7 @@ import os
 from typing import Dict, List, Any, Optional, Union
 from enum import Enum
 import warnings
+import platform
 
 # Suppress the pkg_resources deprecation warning from pygame
 warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API.*", category=UserWarning)
@@ -22,6 +23,125 @@ warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API
 import pygame
 import threading
 import time
+
+class ColorManager:
+    """Handles cross-platform terminal color output"""
+    
+    def __init__(self):
+        self.colors_enabled = True
+        self.current_fg_color = 7  # Default white
+        self.current_bg_color = 0  # Default black
+        
+        # ANSI color codes
+        self.ansi_colors = {
+            0: 30,   # Black
+            1: 37,   # White  
+            2: 31,   # Red
+            3: 32,   # Green
+            4: 34,   # Blue
+            5: 33,   # Yellow
+            6: 35,   # Magenta
+            7: 36,   # Cyan
+            8: 90,   # Dark Gray
+            9: 91,   # Light Red
+            10: 92,  # Light Green
+            11: 94,  # Light Blue
+            12: 93,  # Light Yellow
+            13: 95,  # Light Magenta
+            14: 96,  # Light Cyan
+            15: 97   # Bright White
+        }
+        
+        self.ansi_bg_colors = {
+            0: 40,   # Black
+            1: 47,   # White  
+            2: 41,   # Red
+            3: 42,   # Green
+            4: 44,   # Blue
+            5: 43,   # Yellow
+            6: 45,   # Magenta
+            7: 46,   # Cyan
+            8: 100,  # Dark Gray
+            9: 101,  # Light Red
+            10: 102, # Light Green
+            11: 104, # Light Blue
+            12: 103, # Light Yellow
+            13: 105, # Light Magenta
+            14: 106, # Light Cyan
+            15: 107  # Bright White
+        }
+        
+        # Check if colors are supported
+        self._check_color_support()
+    
+    def _check_color_support(self):
+        """Check if the terminal supports ANSI colors"""
+        # Windows 10 and later support ANSI colors in Command Prompt and PowerShell
+        if os.name == 'nt':
+            try:
+                # Enable ANSI color support on Windows
+                import ctypes
+                kernel32 = ctypes.windll.kernel32
+                kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+                self.colors_enabled = True
+            except:
+                # Fallback: check if we're in a modern terminal
+                self.colors_enabled = os.environ.get('TERM') is not None or \
+                                    'ANSI' in os.environ.get('TERM', '').upper() or \
+                                    'ANSICON' in os.environ
+        else:
+            # Unix-like systems usually support ANSI colors
+            self.colors_enabled = os.environ.get('TERM', '') != 'dumb' and \
+                                hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+    
+    def set_text_color(self, fg_color: int, bg_color: int = None):
+        """Set the current text colors"""
+        if fg_color is not None and 0 <= fg_color <= 15:
+            self.current_fg_color = fg_color
+        if bg_color is not None and 0 <= bg_color <= 15:
+            self.current_bg_color = bg_color
+    
+    def get_color_escape_sequence(self, fg_color: int = None, bg_color: int = None):
+        """Get ANSI escape sequence for colors"""
+        if not self.colors_enabled:
+            return ""
+        
+        if fg_color is None:
+            fg_color = self.current_fg_color
+        if bg_color is None:
+            bg_color = self.current_bg_color
+        
+        # Build ANSI escape sequence
+        codes = []
+        if fg_color in self.ansi_colors:
+            codes.append(str(self.ansi_colors[fg_color]))
+        if bg_color in self.ansi_bg_colors:
+            codes.append(str(self.ansi_bg_colors[bg_color]))
+        
+        if codes:
+            return f"\033[{';'.join(codes)}m"
+        return ""
+    
+    def reset_colors(self):
+        """Reset colors to default"""
+        if self.colors_enabled:
+            return "\033[0m"
+        return ""
+    
+    def colorize_text(self, text: str, fg_color: int = None, bg_color: int = None):
+        """Apply colors to text"""
+        if not self.colors_enabled:
+            return text
+        
+        if fg_color is None:
+            fg_color = self.current_fg_color
+        if bg_color is None:
+            bg_color = self.current_bg_color
+        
+        color_start = self.get_color_escape_sequence(fg_color, bg_color)
+        color_end = self.reset_colors()
+        
+        return f"{color_start}{text}{color_end}"
 
 class TokenType(Enum):
     """Token types for the lexer"""
@@ -56,7 +176,9 @@ class BasicLexer:
         'RUN', 'LIST', 'NEW', 'SAVE', 'LOAD', 'POKE', 'PEEK', 'SYS',
         # Graphics commands
         'GRAPHICS', 'PLOT', 'LINE', 'CIRCLE', 'RECT', 'FILL', 'COLOR', 'PSET',
-        'SCREEN', 'LOCATE', 'POINT', 'PAINT'
+        'SCREEN', 'LOCATE', 'POINT', 'PAINT',
+        # Text color commands
+        'TEXTCOLOR', 'TEXTBG', 'RESETCOLOR'
     }
     
     OPERATORS = {
@@ -342,6 +464,12 @@ class BasicParser:
             return self.parse_color()
         elif keyword == 'PSET':
             return self.parse_pset()
+        elif keyword == 'TEXTCOLOR':
+            return self.parse_textcolor()
+        elif keyword == 'TEXTBG':
+            return self.parse_textbg()
+        elif keyword == 'RESETCOLOR':
+            return ('RESETCOLOR',)
         else:
             # Possibly an assignment without LET
             if self.match(TokenType.OPERATOR) and self.current_token.value == '=':
@@ -516,6 +644,16 @@ class BasicParser:
         y = self.parse_expression()
         return ('PSET', x, y)
     
+    def parse_textcolor(self):
+        """Parse TEXTCOLOR statement"""
+        color = self.parse_expression()
+        return ('TEXTCOLOR', color)
+    
+    def parse_textbg(self):
+        """Parse TEXTBG statement"""
+        color = self.parse_expression()
+        return ('TEXTBG', color)
+    
     def parse_expression(self):
         """Parses an expression (with operator precedence)"""
         return self.parse_or()
@@ -678,18 +816,24 @@ class GraphicsEngine:
         self.current_color = (255, 255, 255)  # White
         self.background_color = (0, 0, 0)     # Black
         
-        # Color palette
+        # Color palette - matches text color system (16 colors)
         self.colors = {
-            0: (0, 0, 0),       # Black
-            1: (255, 255, 255), # White
-            2: (255, 0, 0),     # Red
-            3: (0, 255, 0),     # Green
-            4: (0, 0, 255),     # Blue
-            5: (255, 255, 0),   # Yellow
-            6: (255, 0, 255),   # Magenta
-            7: (0, 255, 255),   # Cyan
-            8: (128, 128, 128), # Grau
-            9: (255, 128, 0),   # Orange
+            0: (0, 0, 0),         # Black
+            1: (255, 255, 255),   # White
+            2: (255, 0, 0),       # Red
+            3: (0, 255, 0),       # Green
+            4: (0, 0, 255),       # Blue
+            5: (255, 255, 0),     # Yellow
+            6: (255, 0, 255),     # Magenta
+            7: (0, 255, 255),     # Cyan
+            8: (128, 128, 128),   # Dark Gray
+            9: (255, 128, 128),   # Light Red
+            10: (128, 255, 128),  # Light Green
+            11: (128, 128, 255),  # Light Blue
+            12: (255, 255, 128),  # Light Yellow
+            13: (255, 128, 255),  # Light Magenta
+            14: (128, 255, 255),  # Light Cyan
+            15: (255, 255, 255),  # Bright White (same as White for graphics)
         }
     
     def init_graphics(self, mode: int = 0):
@@ -843,6 +987,7 @@ class BasicInterpreter:
         self.for_stack = []
         self.while_stack = []
         self.graphics = GraphicsEngine()
+        self.color_manager = ColorManager()
         self.goto_executed = False  # Flag to track GOTO execution
         self._last_operation_results = {}  # Track add/overwrite operations
         
@@ -1136,6 +1281,12 @@ class BasicInterpreter:
             self.execute_color(statement)
         elif cmd == 'PSET':
             self.execute_pset(statement)
+        elif cmd == 'TEXTCOLOR':
+            self.execute_textcolor(statement)
+        elif cmd == 'TEXTBG':
+            self.execute_textbg(statement)
+        elif cmd == 'RESETCOLOR':
+            self.execute_resetcolor(statement)
         elif cmd == 'COMMENT':
             pass  # Kommentare ignorieren
         else:
@@ -1275,7 +1426,10 @@ class BasicInterpreter:
                 if i < len(items) - 1:
                     output_parts.append(' ')
         
-        print(''.join(output_parts))
+        # Apply current text colors to the output
+        output_text = ''.join(output_parts)
+        colored_output = self.color_manager.colorize_text(output_text)
+        print(colored_output)
     
     def execute_let(self, statement):
         """Führt LET-Statement aus"""
@@ -1490,6 +1644,20 @@ class BasicInterpreter:
         y = self.evaluate_expression(statement[2])
         self.graphics.plot_point(x, y)
     
+    def execute_textcolor(self, statement):
+        """Execute TEXTCOLOR statement - sets foreground text color"""
+        color = self.evaluate_expression(statement[1])
+        self.color_manager.set_text_color(int(color), None)
+    
+    def execute_textbg(self, statement):
+        """Execute TEXTBG statement - sets background text color"""
+        color = self.evaluate_expression(statement[1])
+        self.color_manager.set_text_color(None, int(color))
+    
+    def execute_resetcolor(self, statement):
+        """Execute RESETCOLOR statement - resets text colors to default"""
+        self.color_manager.set_text_color(1, 0)  # White on black (default)
+    
     def list_program(self):
         """Listet das Programm auf"""
         if '__lines__' in self.program:
@@ -1619,6 +1787,22 @@ class BasicInterpreter:
                 if len(statement) > 1:
                     return f"COLOR {self.format_expression(statement[1])}"
                 return "COLOR"
+            
+            elif command == 'TEXTCOLOR':
+                # TEXTCOLOR Statement
+                if len(statement) > 1:
+                    return f"TEXTCOLOR {self.format_expression(statement[1])}"
+                return "TEXTCOLOR"
+            
+            elif command == 'TEXTBG':
+                # TEXTBG Statement
+                if len(statement) > 1:
+                    return f"TEXTBG {self.format_expression(statement[1])}"
+                return "TEXTBG"
+            
+            elif command == 'RESETCOLOR':
+                # RESETCOLOR Statement
+                return "RESETCOLOR"
             
             elif command == 'PSET':
                 # PSET Statement
@@ -2454,13 +2638,29 @@ Graphics Commands:
     LINE x1, y1 TO x2, y2 - Draws a line
     CIRCLE x, y, radius - Draws a circle
     RECT x, y, width, height - Draws a rectangle
-    COLOR color     - Sets the drawing color (0-9)
+    COLOR color     - Sets the drawing color (0-15)
     PSET x, y      - Sets a pixel
+
+Text Color Commands:
+    TEXTCOLOR color - Sets text foreground color (0-15)
+    TEXTBG color   - Sets text background color (0-15)
+    RESETCOLOR     - Resets text colors to default (white on black)
+
+Color Palette (0-15) - Used for both graphics and text:
+    0=Black, 1=White, 2=Red, 3=Green, 4=Blue, 5=Yellow, 6=Magenta, 7=Cyan
+    8=Dark Gray, 9=Light Red, 10=Light Green, 11=Light Blue
+    12=Light Yellow, 13=Light Magenta, 14=Light Cyan, 15=Bright White
 
 Graphics Features:
     - The graphics window automatically stays on top of other windows
     - Cross-platform support (Windows, Linux, macOS)
-    - 800x600 pixel resolution with color palette
+    - 800x600 pixel resolution with 16-color palette
+    
+Text Color Features:
+    - Cross-platform ANSI color support
+    - Works in Command Prompt, PowerShell, and Unix terminals
+    - 16-color palette for both foreground and background
+    - Colors apply to all PRINT output until changed
 
 Built-in Functions:
     ABS(x), INT(x), SQR(x), SIN(x), COS(x), TAN(x)
@@ -2473,7 +2673,13 @@ Example Usage:
     list                      (shows program)
     run                       (runs the program)
 
-Example Program:
+Example Color Program:
+    10 TEXTCOLOR 2: PRINT "This is red text"
+    20 TEXTCOLOR 3: PRINT "This is green text"
+    30 TEXTBG 4: PRINT "This has blue background"
+    40 RESETCOLOR: PRINT "Back to normal"
+
+Example Graphics Program:
     10 GRAPHICS
     20 FOR I = 0 TO 360 STEP 10
     30 X = 400 + 100 * COS(I * 3.14159 / 180)
