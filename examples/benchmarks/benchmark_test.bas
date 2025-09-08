@@ -1,11 +1,11 @@
-REM Benchmark Test - Demonstrates TIME function usage
-REM This program shows how to benchmark BASIC code execution time
+1 REM Benchmark Test - Demonstrates TIME function usage
+2 REM This program shows how to benchmark BASIC code execution time
 
 10 PRINT "CrossBasic Benchmark Demo"
 20 PRINT "========================="
 30 PRINT
 
-REM Test 1: Simple loop benchmark
+35 REM Test 1: Simple loop benchmark
 40 PRINT "Test 1: Simple counting loop"
 50 LET START_TIME = TIME()
 60 FOR I = 1 TO 10000
@@ -15,7 +15,7 @@ REM Test 1: Simple loop benchmark
 100 PRINT "Counted to 10000 in"; ELAPSED; "seconds"
 110 PRINT
 
-REM Test 2: Mathematical operations benchmark
+115 REM Test 2: Mathematical operations benchmark
 120 PRINT "Test 2: Mathematical operations"
 130 LET START_TIME = TIME()
 140 FOR I = 1 TO 1000
@@ -26,7 +26,7 @@ REM Test 2: Mathematical operations benchmark
 190 PRINT "1000 math operations in"; ELAPSED; "seconds"
 200 PRINT
 
-REM Test 3: Nested loops benchmark
+205 REM Test 3: Nested loops benchmark
 210 PRINT "Test 3: Nested loops"
 220 LET START_TIME = TIME()
 230 FOR I = 1 TO 100

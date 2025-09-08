@@ -1,4 +1,4 @@
-REM Example 1: Simple mathematics and output
+1 REM Example 1: Simple mathematics and output
 10 PRINT "CrossBasic Interpreter Demo"
 20 PRINT "========================="
 30 PRINT

@@ -1,5 +1,5 @@
-REM Mandelbrot Explorer - Interactive Version
-REM Explores various interesting regions of the Mandelbrot set
+1 REM Mandelbrot Explorer - Interactive Version
+2 REM Explores various interesting regions of the Mandelbrot set
 
 10 PRINT "Mandelbrot Explorer"
 20 PRINT "==================="
@@ -15,14 +15,14 @@ REM Explores various interesting regions of the Mandelbrot set
 100 GRAPHICS
 110 CLS
 
-REM Parameters depending on choice
+115 REM Parameters depending on choice
 120 IF CHOICE = 1 THEN GOSUB 1000
 130 IF CHOICE = 2 THEN GOSUB 1100
 140 IF CHOICE = 3 THEN GOSUB 1200
 150 IF CHOICE = 4 THEN GOSUB 1300
 160 IF CHOICE = 5 THEN GOSUB 1400
 
-REM Common rendering parameters
+165 REM Common rendering parameters
 170 LET WIDTH = 600
 180 LET HEIGHT = 400
 190 LET MAX_ITER = 80
@@ -35,14 +35,14 @@ REM Common rendering parameters
 240 PRINT "Drawing region:"; REGION_NAME
 250 PRINT "Please wait..."
 
-REM Main rendering loop
+255 REM Main rendering loop
 260 FOR Y = 0 TO HEIGHT - 1 STEP 2
 270 LET CY = YMIN + Y * YSTEP
 
 280 FOR X = 0 TO WIDTH - 1 STEP 2
 290 LET CX = XMIN + X * XSTEP
 
-REM Mandelbrot iteration
+295 REM Mandelbrot iteration
 300 LET ZX = 0
 310 LET ZY = 0
 

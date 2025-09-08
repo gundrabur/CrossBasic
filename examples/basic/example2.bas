@@ -1,4 +1,4 @@
-REM Example 2: Loops and conditions
+1 REM Example 2: Loops and conditions
 10 PRINT "Numbers from 1 to 10:"
 20 FOR I = 1 TO 10
 30 PRINT I;

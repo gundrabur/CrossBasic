@@ -1,4 +1,4 @@
-REM Example 3: Graphics - Drawing a circle
+1 REM Example 3: Graphics - Drawing a circle
 10 GRAPHICS
 20 COLOR 1
 30 CLS

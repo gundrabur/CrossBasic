@@ -1,4 +1,4 @@
-REM Example 5: Graphic patterns
+1 REM Example 5: Graphic patterns
 10 GRAPHICS
 20 CLS
 30 COLOR 1

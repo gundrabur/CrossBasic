@@ -1,4 +1,4 @@
-REM Example program for testing the BASIC line editor
+1 REM Example program for testing the BASIC line editor
 10 PRINT "=== CrossBasic Line Editor Demo ==="
 20 PRINT "This program was created using the line editor"
 30 PRINT
