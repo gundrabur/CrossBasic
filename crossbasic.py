@@ -14,6 +14,11 @@ import sys
 import os
 from typing import Dict, List, Any, Optional, Union
 from enum import Enum
+import warnings
+
+# Suppress the pkg_resources deprecation warning from pygame
+warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API.*", category=UserWarning)
+
 import pygame
 import threading
 import time
@@ -1605,9 +1610,32 @@ class BasicInterpreter:
             
             elif command == 'NEXT':
                 # NEXT Statement
-                if len(statement) > 1:
+                if len(statement) > 1 and statement[1] is not None:
                     return f"NEXT {self.format_expression(statement[1])}"
                 return "NEXT"
+            
+            elif command == 'COLOR':
+                # COLOR Statement
+                if len(statement) > 1:
+                    return f"COLOR {self.format_expression(statement[1])}"
+                return "COLOR"
+            
+            elif command == 'PSET':
+                # PSET Statement
+                if len(statement) >= 3:
+                    return f"PSET {self.format_expression(statement[1])}, {self.format_expression(statement[2])}"
+                return "PSET"
+            
+            elif command == 'INPUT':
+                # INPUT Statement
+                if len(statement) >= 3:
+                    prompt = statement[1]
+                    var_name = statement[2]
+                    if prompt:
+                        return f'INPUT "{prompt}", {var_name}'
+                    else:
+                        return f'INPUT {var_name}'
+                return "INPUT"
             
             else:
                 # Allgemeine Formatierung für andere Befehle
@@ -1623,16 +1651,43 @@ class BasicInterpreter:
                 # Einfacher Wert
                 if expr[0] == 'STRING':
                     return f'"{expr[1]}"'
+                elif expr[0] == 'VARIABLE':
+                    return str(expr[1])
                 else:
                     return str(expr[1])
+            elif len(expr) == 3 and expr[0] == 'UNOP':
+                # Unärer Operator (z.B. -2.0, +5, NOT x)
+                op = expr[1]
+                operand = self.format_expression(expr[2])
+                if op in ['+', '-']:
+                    return f"{op}{operand}"
+                else:
+                    return f"{op} {operand}"
             elif len(expr) == 4 and expr[0] == 'BINOP':
                 # Binärer Operator
                 left = self.format_expression(expr[1])
                 op = expr[2]
                 right = self.format_expression(expr[3])
                 return f"({left} {op} {right})"
+            elif len(expr) == 3 and expr[0] == 'FUNCTION':
+                # Funktionsaufruf ohne Argumente
+                func_name = expr[1]
+                return f"{func_name}()"
+            elif len(expr) == 3 and expr[0] == 'FUNCTION' and isinstance(expr[2], list):
+                # Funktionsaufruf mit Argumenten
+                func_name = expr[1]
+                args = [self.format_expression(arg) for arg in expr[2]]
+                return f"{func_name}({', '.join(args)})"
             else:
-                # Andere Tupel-Strukturen
+                # Andere Tupel-Strukturen - versuche zu formatieren
+                if len(expr) >= 2:
+                    if expr[0] == 'NUMBER':
+                        return str(expr[1])
+                    elif expr[0] == 'STRING':
+                        return f'"{expr[1]}"'
+                    elif expr[0] == 'VARIABLE':
+                        return str(expr[1])
+                # Fallback für unbekannte Strukturen
                 return str(expr)
         elif isinstance(expr, list):
             # Liste von Ausdrücken
