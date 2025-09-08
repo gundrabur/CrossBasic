@@ -1,5 +1,5 @@
 5 REM Mandelbrot Set - High Definition Version (Corrected)
-8REM Functional version without GOTO problems
+8 REM Functional version without GOTO problems
 
 10 PRINT "Mandelbrot Set - High Definition Version"
 20 PRINT "======================================="

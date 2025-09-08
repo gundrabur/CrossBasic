@@ -1,5 +1,5 @@
-REM CrossBasic Always-On-Top Graphics Demo
-REM This program demonstrates the always-on-top graphics window feature
+1 REM CrossBasic Always-On-Top Graphics Demo
+2 REM This program demonstrates the always-on-top graphics window feature
 
 10 REM Initialize graphics mode
 20 GRAPHICS

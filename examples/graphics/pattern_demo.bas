@@ -3,16 +3,16 @@
 20 CLS
 30 COLOR 1
 40 PRINT "Drawing geometric patterns..."
-50 REM Checkerboard pattern
-60 FOR X = 0 TO 800 STEP 40
+45 REM Checkerboard pattern
+50 FOR X = 0 TO 800 STEP 40
 70 FOR Y = 0 TO 600 STEP 40
 80 LET SUM = (X / 40) + (Y / 40)
 90 IF INT(SUM / 2) * 2 = SUM THEN COLOR 1 ELSE COLOR 0
 100 RECT X, Y, 40, 40
 110 NEXT Y
 120 NEXT X
-130 REM Spiral
-140 COLOR 2
+125 REM Spiral
+130 COLOR 2
 150 LET X = 400
 160 LET Y = 300
 170 LET ANGLE = 0

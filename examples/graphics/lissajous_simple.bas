@@ -1,6 +1,6 @@
-REM Simple Lissajous Curves - Interactive Demo
-REM This program demonstrates the basic concept of Lissajous curves
-REM with clear visual separation and step-by-step drawing
+1 REM Simple Lissajous Curves - Interactive Demo
+2 REM This program demonstrates the basic concept of Lissajous curves
+3 REM with clear visual separation and step-by-step drawing
 
 10 GRAPHICS
 20 CLS
@@ -15,12 +15,12 @@ REM with clear visual separation and step-by-step drawing
 100 PRINT "where A and B are frequency multipliers"
 110 PRINT ""
 
-REM Set up the drawing area
+115 REM Set up the drawing area
 120 LET CENTER_X = 400
 130 LET CENTER_Y = 300
 140 LET RADIUS = 120
 
-REM Draw the first simple curve: 1:1 ratio (circle)
+145 REM Draw the first simple curve: 1:1 ratio (circle)
 150 COLOR 2
 160 PRINT "Drawing 1:1 ratio (circle)..."
 170 FOR T = 0 TO 628 STEP 4
@@ -32,7 +32,7 @@ REM Draw the first simple curve: 1:1 ratio (circle)
 220 INPUT "Press Enter for next pattern...", DUMMY
 230 CLS
 
-REM Draw the second curve: 1:2 ratio (figure-8)
+235 REM Draw the second curve: 1:2 ratio (figure-8)
 240 COLOR 3
 250 PRINT "Drawing 1:2 ratio (figure-8)..."
 260 FOR T = 0 TO 628 STEP 3
@@ -44,7 +44,7 @@ REM Draw the second curve: 1:2 ratio (figure-8)
 310 INPUT "Press Enter for next pattern...", DUMMY
 320 CLS
 
-REM Draw the third curve: 2:3 ratio
+325 REM Draw the third curve: 2:3 ratio
 330 COLOR 4
 340 PRINT "Drawing 2:3 ratio (complex loop)..."
 350 FOR T = 0 TO 942 STEP 3
@@ -56,7 +56,7 @@ REM Draw the third curve: 2:3 ratio
 400 INPUT "Press Enter for next pattern...", DUMMY
 410 CLS
 
-REM Draw the fourth curve: 3:4 ratio
+415 REM Draw the fourth curve: 3:4 ratio
 420 COLOR 5
 430 PRINT "Drawing 3:4 ratio (intricate pattern)..."
 440 FOR T = 0 TO 1256 STEP 3
@@ -67,15 +67,15 @@ REM Draw the fourth curve: 3:4 ratio
 
 490 INPUT "Press Enter for final comparison...", DUMMY
 
-REM Show all patterns together in smaller size
+495 REM Show all patterns together in smaller size
 500 CLS
 510 COLOR 1
 520 PRINT "All Lissajous patterns together:"
 
-REM Small scale factor for comparison view
+525 REM Small scale factor for comparison view
 530 LET SMALL_RADIUS = 60
 
-REM Pattern positions
+535 REM Pattern positions
 540 LET POS1_X = 200
 550 LET POS1_Y = 200
 560 LET POS2_X = 600
@@ -85,7 +85,7 @@ REM Pattern positions
 600 LET POS4_X = 600
 610 LET POS4_Y = 450
 
-REM Draw all four patterns
+615 REM Draw all four patterns
 620 COLOR 2
 630 FOR T = 0 TO 628 STEP 6
 640 LET X = POS1_X + SMALL_RADIUS * SIN(T / 100)
@@ -114,7 +114,7 @@ REM Draw all four patterns
 840 PSET X, Y
 850 NEXT T
 
-REM Add labels
+855 REM Add labels
 860 COLOR 1
 870 PRINT "1:1 (circle)     1:2 (figure-8)"
 880 PRINT ""

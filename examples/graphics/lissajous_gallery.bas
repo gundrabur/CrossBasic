@@ -1,6 +1,6 @@
-REM Advanced Lissajous Patterns - Multiple Animated Curves
-REM This program creates several Lissajous patterns with different parameters
-REM and demonstrates how frequency ratios affect the curve shapes
+1 REM Advanced Lissajous Patterns - Multiple Animated Curves
+2 REM This program creates several Lissajous patterns with different parameters
+3 REM and demonstrates how frequency ratios affect the curve shapes
 
 10 GRAPHICS
 20 CLS
@@ -10,13 +10,13 @@ REM and demonstrates how frequency ratios affect the curve shapes
 50 PRINT "==================================="
 60 PRINT "Generating multiple animated patterns..."
 
-REM Screen setup
+65 REM Screen setup
 70 LET WIDTH = 800
 80 LET HEIGHT = 600
 90 LET CX = WIDTH / 2
 100 LET CY = HEIGHT / 2
 
-REM Pattern 1: Classic figure-8 (1:2 ratio)
+105 REM Pattern 1: Classic figure-8 (1:2 ratio)
 110 COLOR 2
 120 PRINT "Pattern 1: Figure-8 (1:2 ratio)"
 130 LET SCALE1 = 80
@@ -29,7 +29,7 @@ REM Pattern 1: Classic figure-8 (1:2 ratio)
 190 PSET X, Y
 200 NEXT T
 
-REM Pattern 2: Three-leaf rose (3:1 ratio)
+205 REM Pattern 2: Three-leaf rose (3:1 ratio)
 210 COLOR 3
 220 PRINT "Pattern 2: Three-leaf rose (3:1 ratio)"
 230 LET SCALE2 = 80
@@ -42,7 +42,7 @@ REM Pattern 2: Three-leaf rose (3:1 ratio)
 290 PSET X, Y
 300 NEXT T
 
-REM Pattern 3: Complex knot (5:3 ratio)
+305 REM Pattern 3: Complex knot (5:3 ratio)
 310 COLOR 4
 320 PRINT "Pattern 3: Complex knot (5:3 ratio)"
 330 LET SCALE3 = 80
@@ -55,7 +55,7 @@ REM Pattern 3: Complex knot (5:3 ratio)
 390 PSET X, Y
 400 NEXT T
 
-REM Pattern 4: Spirograph-like (7:4 ratio with phase)
+405 REM Pattern 4: Spirograph-like (7:4 ratio with phase)
 410 COLOR 5
 420 PRINT "Pattern 4: Spirograph-like (7:4 ratio)"
 430 LET SCALE4 = 80
@@ -69,12 +69,12 @@ REM Pattern 4: Spirograph-like (7:4 ratio with phase)
 500 PSET X, Y
 510 NEXT T
 
-REM Central animated pattern with changing parameters
+515 REM Central animated pattern with changing parameters
 520 COLOR 6
 530 PRINT "Center: Animated morphing pattern"
 540 LET BASE_SCALE = 60
 
-REM Animation loop with gradually changing frequency ratio
+545 REM Animation loop with gradually changing frequency ratio
 550 FOR ANIM = 0 TO 20
 560 LET A_FREQ = 2 + ANIM / 10
 570 LET B_FREQ = 3
@@ -88,27 +88,27 @@ REM Animation loop with gradually changing frequency ratio
 640 NEXT T
 650 NEXT ANIM
 
-REM Add decorative borders and labels
+655 REM Add decorative borders and labels
 660 COLOR 7
-670 REM Top-left frame
-680 RECT CX - 240, CY - 190, 160, 160
-690 REM Top-right frame
-700 RECT CX + 80, CY - 190, 160, 160
-710 REM Bottom-left frame
-720 RECT CX - 240, CY + 30, 160, 160
-730 REM Bottom-right frame
-740 RECT CX + 80, CY + 30, 160, 160
+665 REM Top-left frame
+670 RECT CX - 240, CY - 190, 160, 160
+675 REM Top-right frame
+680 RECT CX + 80, CY - 190, 160, 160
+685 REM Bottom-left frame
+690 RECT CX - 240, CY + 30, 160, 160
+695 REM Bottom-right frame
+700 RECT CX + 80, CY + 30, 160, 160
 
-REM Central circle
-750 COLOR 8
-760 CIRCLE CX, CY, BASE_SCALE + 20
+705 REM Central circle
+710 COLOR 8
+720 CIRCLE CX, CY, BASE_SCALE + 20
 
-REM Add coordinate reference lines
-770 COLOR 9
-780 LINE 0, CY TO WIDTH, CY
-790 LINE CX, 0 TO CX, HEIGHT
+725 REM Add coordinate reference lines
+730 COLOR 9
+740 LINE 0, CY TO WIDTH, CY
+750 LINE CX, 0 TO CX, HEIGHT
 
-800 COLOR 1
+760 COLOR 1
 810 PRINT "Lissajous pattern gallery complete!"
 820 PRINT "Each pattern shows different frequency ratios:"
 830 PRINT "- Figure-8: Simple 1:2 harmonic"

@@ -64,7 +64,7 @@
 
 440 NEXT X
 
-REM Show progress
+445 REM Show progress
 450 IF Y / 20 = INT(Y / 20) THEN PRINT "Line"; Y; "of"; HEIGHT
 
 460 NEXT Y
@@ -77,9 +77,9 @@ REM Show progress
 
 510 END
 
-REM ========================
-REM Region Definitions
-REM ========================
+515 REM ========================
+516 REM Region Definitions
+517 REM ========================
 
 1000 REM Full view
 1010 LET XMIN = -2.5
