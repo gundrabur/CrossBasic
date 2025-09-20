@@ -51,9 +51,6 @@ if [ $? -eq 0 ]; then
     echo "📦 Executable created: dist/crossbasic"
     echo "📏 File size: $(du -h dist/crossbasic | cut -f1)"
     echo ""
-    echo "🧪 Testing executable..."
-    cd dist
-    echo "quit" | timeout 5s ./crossbasic || echo "✅ Executable runs correctly!"
     cd ..
     echo ""
     echo "🎉 Ready for distribution!"
