@@ -398,8 +398,20 @@ class BasicParser:
             had_line_number = True
             self.advance()
         
-        # Statement parsen
+        # Parse multiple statements separated by colons
+        statements = []
         statement = self.parse_statement()
+        if statement:
+            statements.append(statement)
+        
+        # Look for additional statements separated by colons
+        while self.match(TokenType.OPERATOR) and self.current_token.value == ':':
+            self.advance()  # consume the colon
+            # Skip empty statements (multiple colons in a row)
+            if not self.match(TokenType.NEWLINE, TokenType.EOF):
+                statement = self.parse_statement()
+                if statement:
+                    statements.append(statement)
         
         # Newline oder EOF erwarten
         if self.match(TokenType.NEWLINE):
@@ -407,8 +419,12 @@ class BasicParser:
         elif not self.match(TokenType.EOF):
             self.error("Expected newline or end of file")
         
-        if statement:
-            return (line_number or 0, statement, had_line_number)
+        if statements:
+            # If multiple statements, wrap them in a MULTI_STATEMENT container
+            if len(statements) > 1:
+                return (line_number or 0, ('MULTI_STATEMENT', statements), had_line_number)
+            else:
+                return (line_number or 0, statements[0], had_line_number)
         return None
     
     def parse_statement(self):
@@ -530,12 +546,52 @@ class BasicParser:
             self.error("Expected THEN")
         self.advance()
         
+        # Parse multiple statements in THEN clause separated by colons
+        then_statements = []
         then_stmt = self.parse_statement()
-        else_stmt = None
+        if then_stmt:
+            then_statements.append(then_stmt)
         
+        # Look for additional statements in THEN clause separated by colons
+        while self.match(TokenType.OPERATOR) and self.current_token.value == ':':
+            # Check if next token is ELSE (if so, don't consume the colon)
+            if self.peek().type == TokenType.KEYWORD and self.peek().value == 'ELSE':
+                break
+            self.advance()  # consume the colon
+            stmt = self.parse_statement()
+            if stmt:
+                then_statements.append(stmt)
+        
+        # Create THEN statement (single or multi)
+        if len(then_statements) > 1:
+            then_stmt = ('MULTI_STATEMENT', then_statements)
+        elif len(then_statements) == 1:
+            then_stmt = then_statements[0]
+        else:
+            then_stmt = None
+        
+        else_stmt = None
         if self.match(TokenType.KEYWORD) and self.current_token.value == 'ELSE':
             self.advance()
-            else_stmt = self.parse_statement()
+            
+            # Parse multiple statements in ELSE clause separated by colons
+            else_statements = []
+            else_stmt_part = self.parse_statement()
+            if else_stmt_part:
+                else_statements.append(else_stmt_part)
+            
+            # Look for additional statements in ELSE clause separated by colons
+            while self.match(TokenType.OPERATOR) and self.current_token.value == ':':
+                self.advance()  # consume the colon
+                stmt = self.parse_statement()
+                if stmt:
+                    else_statements.append(stmt)
+            
+            # Create ELSE statement (single or multi)
+            if len(else_statements) > 1:
+                else_stmt = ('MULTI_STATEMENT', else_statements)
+            elif len(else_statements) == 1:
+                else_stmt = else_statements[0]
         
         return ('IF', condition, then_stmt, else_stmt)
     
@@ -1289,6 +1345,8 @@ class BasicInterpreter:
             self.execute_textbg(statement)
         elif cmd == 'RESETCOLOR':
             self.execute_resetcolor(statement)
+        elif cmd == 'MULTI_STATEMENT':
+            self.execute_multi_statement(statement)
         elif cmd == 'COMMENT':
             pass  # Kommentare ignorieren
         else:
@@ -1665,6 +1723,15 @@ class BasicInterpreter:
         """Execute RESETCOLOR statement - resets text colors to default"""
         self.color_manager.set_text_color(1, 0)  # White on black (default)
     
+    def execute_multi_statement(self, statement):
+        """Execute multiple statements from a single line"""
+        _, statements = statement
+        for sub_statement in statements:
+            if self.running:  # Check if we should continue (e.g., no END or GOTO executed)
+                self.execute_statement(sub_statement)
+            else:
+                break
+    
     def list_program(self):
         """Listet das Programm auf"""
         if '__lines__' in self.program:
@@ -1827,6 +1894,16 @@ class BasicInterpreter:
                     else:
                         return f'INPUT {var_name}'
                 return "INPUT"
+            
+            elif command == 'MULTI_STATEMENT':
+                # MULTI_STATEMENT - format multiple statements separated by colons
+                if len(statement) > 1:
+                    statements = statement[1]
+                    formatted_statements = []
+                    for sub_statement in statements:
+                        formatted_statements.append(self.format_statement(sub_statement))
+                    return ': '.join(formatted_statements)
+                return ""
             
             else:
                 # Allgemeine Formatierung für andere Befehle
