@@ -172,7 +172,7 @@ class BasicLexer:
     KEYWORDS = {
         'PRINT', 'LET', 'IF', 'THEN', 'ELSE', 'FOR', 'TO', 'STEP', 'NEXT',
         'WHILE', 'WEND', 'GOTO', 'GOSUB', 'RETURN', 'END', 'INPUT', 'DIM',
-        'AND', 'OR', 'NOT', 'REM', 'DATA', 'READ', 'RESTORE', 'CLS', 'STOP',
+        'AND', 'OR', 'NOT', 'MOD', 'REM', 'DATA', 'READ', 'RESTORE', 'CLS', 'STOP',
         'RUN', 'LIST', 'NEW', 'SAVE', 'LOAD', 'POKE', 'PEEK', 'SYS',
         # Graphics commands
         'GRAPHICS', 'PLOT', 'LINE', 'CIRCLE', 'RECT', 'FILL', 'COLOR', 'PSET',
@@ -722,11 +722,13 @@ class BasicParser:
         return left
     
     def parse_multiplication(self):
-        """Parst Multiplikation und Division"""
+        """Parst Multiplikation, Division und Modulo"""
         left = self.parse_power()
         
-        while (self.match(TokenType.OPERATOR) and 
-               self.current_token.value in ['*', '/']):
+        while ((self.match(TokenType.OPERATOR) and 
+                self.current_token.value in ['*', '/']) or
+               (self.match(TokenType.KEYWORD) and 
+                self.current_token.value == 'MOD')):
             op = self.current_token.value
             self.advance()
             right = self.parse_power()
@@ -1337,6 +1339,11 @@ class BasicInterpreter:
                     self.error("Division by zero")
                     return 0
                 return left / right
+            elif op == 'MOD':
+                if right == 0:
+                    self.error("Division by zero in MOD operation")
+                    return 0
+                return left % right
             elif op == '^':
                 return left ** right
             elif op == '=':
@@ -2662,6 +2669,11 @@ Text Color Features:
     - 16-color palette for both foreground and background
     - Colors apply to all PRINT output until changed
 
+Mathematical Operators:
+    +, -, *, /, ^ (power), MOD (modulo)
+    =, <>, !=, <, >, <=, >=
+    AND, OR, NOT
+
 Built-in Functions:
     ABS(x), INT(x), SQR(x), SIN(x), COS(x), TAN(x)
     RND([x]), LEN(s), CHR(s), ASC(s)
@@ -2687,6 +2699,12 @@ Example Graphics Program:
     50 PLOT X, Y
     60 NEXT I
     70 END
+
+Example MOD Operator Usage:
+    10 FOR I = 1 TO 20
+    20 IF I MOD 5 = 0 THEN PRINT I; " is divisible by 5"
+    30 IF I MOD 2 = 1 THEN PRINT I; " is odd"
+    40 NEXT I
 """
     print(help_text)
 
